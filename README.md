@@ -99,7 +99,14 @@ They remain useful for chat, translation, and Polish-language work.
 | `reviewer` | subagent | Qwen3.6-27B, t=0.1 | Finds defects, read-only |
 | `fastfix` | subagent | GLM-4.7-Flash | Small mechanical edits (~5s) |
 
-Invoke subagents with `@researcher`, `@reviewer`, `@fastfix`.
+Invoke subagents with `@researcher`, `@reviewer`, `@fastfix`. Cycle primary agents
+(`architect`, `chat`, and the built-in `build`/`plan`) with **Tab** in the TUI, or
+pass `--agent <name>` to `opencode run`.
+
+`AGENTS.md` is deliberately short and contains only directives — it is prepended to
+every agent's system prompt, so anything descriptive in it is paid for on every
+request. OpenCode already injects the agent and command descriptions from
+`opencode.json`; do not restate them there.
 
 **3 commands:** `/check` (typecheck + test + fix), `/review` (review the diff),
 `/explain <thing>` (trace with file:line citations).
