@@ -12,54 +12,64 @@
 // The key is stored in ~/.local/share/opencode/auth.json - no key ever
 // needs to appear in a config file or an environment variable.
 //
-// Model metadata below was measured against the live gateway, not guessed:
+// Model metadata below is derived from the live gateway, not guessed:
+//   tool_call       - PLGrid's function_calling_supported field
+//   attachment      - vision-language model (Qwen3-VL)
+//   reasoning       - verified by inspecting the streaming/non-streaming
+//                     response: the gateway (vLLM 0.29) exposes chain of
+//                     thought in the message's "reasoning" field
 //   limit.context   - from the server's own max_model_len error messages
-//   tool_call       - from PLGrid's function_calling_supported field
 //   limit.output    - kept well under context; opencode sends this verbatim
 //                     as max_tokens, and the gateway enforces
 //                     input + max_tokens <= context
+//
+// Two caveats:
+//   * Models reachable only through a grant other than the default one are
+//     tagged "(grant access required)". They list as accessible in
+//     /v1/models-plgrid-format but the gateway currently routes requests
+//     through a single grant, so they may answer 400 until the key is
+//     pointed at the right grant.
+//   * For those same models the reasoning/limit fields could not be probed
+//     from this account, so they are left at opencode's defaults rather
+//     than filled in with a guess.
+//
+// The embedding model (Qwen/Qwen3-Embedding-0.6B) is deliberately absent:
+// this provider exposes chat models to opencode, and an embedding model is
+// not selectable as one.
 
 const BASE_URL = "https://llmlab.plgrid.pl/api/v1"
 
 const MODELS = {
   "zai-org/GLM-5.2-FP8": {
-    "name": "GLM-5.2 FP8",
+    "name": "GLM-5.2 FP8 (non-commercial)",
     "tool_call": true,
     "reasoning": true,
     "interleaved": {
-      "field": "reasoning_content"
+      "field": "reasoning"
     },
     "limit": {
       "context": 393216,
       "output": 32768
     }
   },
-  "zai-org/GLM-4.7-Flash": {
-    "name": "GLM-4.7 Flash",
+  "deepseek-ai/DeepSeek-V4.1-Flash": {
+    "name": "DeepSeek V4.1 Flash (non-commercial)",
     "tool_call": true,
     "reasoning": true,
     "interleaved": {
-      "field": "reasoning_content"
-    },
-    "limit": {
-      "context": 202752,
-      "output": 32768
+      "field": "reasoning"
     }
   },
-  "Qwen/Qwen3-Coder-30B-A3B-Instruct": {
-    "name": "Qwen3 Coder 30B A3B",
-    "tool_call": true,
-    "limit": {
-      "context": 249600,
-      "output": 32768
-    }
+  "deepseek-ai/DeepSeek-V4-Flash-0731": {
+    "name": "DeepSeek V4 Flash 0731 (non-commercial, grant access required)",
+    "tool_call": false
   },
   "Qwen/Qwen3.6-27B": {
-    "name": "Qwen3.6 27B",
+    "name": "Qwen3.6 27B (non-commercial)",
     "tool_call": true,
     "reasoning": true,
     "interleaved": {
-      "field": "reasoning_content"
+      "field": "reasoning"
     },
     "limit": {
       "context": 262144,
@@ -71,30 +81,30 @@ const MODELS = {
     "tool_call": true,
     "reasoning": true,
     "interleaved": {
-      "field": "reasoning_content"
+      "field": "reasoning"
     },
     "limit": {
       "context": 262144,
       "output": 32768
     }
   },
-  "Qwen/QwQ-32B": {
-    "name": "QwQ 32B",
-    "tool_call": false,
-    "reasoning": true,
-    "interleaved": {
-      "field": "reasoning_content"
-    },
-    "limit": {
-      "context": 40960,
-      "output": 8192
-    }
+  "Qwen/Qwen3.8-27B": {
+    "name": "Qwen3.8 27B (grant access required)",
+    "tool_call": true
   },
-  "google/gemma-4-31B": {
-    "name": "Gemma 4 31B",
+  "Qwen/Qwen3.5-397B-A17B-FP8": {
+    "name": "Qwen3.5 397B A17B FP8 (grant access required)",
+    "tool_call": true
+  },
+  "Qwen/Qwen3.5-122B-A10B": {
+    "name": "Qwen3.5 122B A10B (grant access required)",
+    "tool_call": true
+  },
+  "Qwen/Qwen3-Coder-30B-A3B-Instruct": {
+    "name": "Qwen3 Coder 30B A3B",
     "tool_call": true,
     "limit": {
-      "context": 262144,
+      "context": 249600,
       "output": 32768
     }
   },
@@ -105,6 +115,30 @@ const MODELS = {
     "limit": {
       "context": 262144,
       "output": 32768
+    }
+  },
+  "Qwen/QwQ-32B": {
+    "name": "QwQ 32B",
+    "tool_call": false,
+    "limit": {
+      "context": 40960,
+      "output": 8192
+    }
+  },
+  "google/gemma-4-31B": {
+    "name": "Gemma 4 31B (non-commercial)",
+    "tool_call": true,
+    "limit": {
+      "context": 262144,
+      "output": 32768
+    }
+  },
+  "meta-llama/Llama-3.3-70B-Instruct": {
+    "name": "Llama 3.3 70B Instruct",
+    "tool_call": true,
+    "limit": {
+      "context": 131072,
+      "output": 16384
     }
   },
   "speakleash/Bielik-11B-v3.0-Instruct": {
@@ -133,22 +167,6 @@ const MODELS = {
   },
   "CYFRAGOVPL/pllum-12b-nc-chat-250715": {
     "name": "PLLuM 12B chat (non-commercial)",
-    "tool_call": false,
-    "limit": {
-      "context": 131072,
-      "output": 16384
-    }
-  },
-  "Qwen/Qwen3.5-397B-A17B-FP8": {
-    "name": "Qwen3.5 397B A17B FP8 (grant access required)",
-    "tool_call": true
-  },
-  "Qwen/Qwen3.5-122B-A10B": {
-    "name": "Qwen3.5 122B A10B (grant access required)",
-    "tool_call": true
-  },
-  "meta-llama/Llama-3.3-70B-Instruct": {
-    "name": "Llama 3.3 70B Instruct (currently inactive)",
     "tool_call": false,
     "limit": {
       "context": 131072,
