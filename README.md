@@ -30,12 +30,32 @@ probed from this account and are left at OpenCode's defaults rather than guessed
 
 ## Install
 
-```bash
-# per-project
-cp -r .opencode AGENTS.md opencode.json /path/to/your/project/
+Choose one of the two setups.
 
-# or machine-wide
+**Per project.** Copy the plugin, the agent directives and the config into the root of
+your project:
+
+```bash
+cp -r .opencode AGENTS.md opencode.json /path/to/your/project/
+```
+
+**Machine-wide.** Create OpenCode's global plugin directory, if it does not exist yet:
+
+```bash
+mkdir -p ~/.config/opencode/plugins
+```
+
+Copy the provider plugin into it:
+
+```bash
 cp .opencode/plugins/plgrid.js ~/.config/opencode/plugins/
+```
+
+Install the config as your global OpenCode config. This overwrites an existing
+`~/.config/opencode/opencode.json` — if you already have one, merge the two by hand
+instead:
+
+```bash
 cp opencode.json ~/.config/opencode/opencode.json
 ```
 
@@ -48,11 +68,16 @@ opencode providers login -p plgrid
 Paste your grant's API key. It is stored in
 `~/.local/share/opencode/auth.json` — **never** in any file in this repo.
 
-Verify:
+Verify that the provider is registered — this should list 17 models:
 
 ```bash
-opencode models plgrid    # should list 17 models
-opencode                  # TUI; /models to switch, Tab to switch agent
+opencode models plgrid
+```
+
+Then start the TUI. Use `/models` to switch model and **Tab** to switch agent:
+
+```bash
+opencode
 ```
 
 ## What you get
@@ -158,11 +183,18 @@ the language server's diagnostics straight back to the agent, which then fixes i
 own type errors unprompted.
 
 But it needs the server binary installed. With no `pyright` on `PATH`, `lsp: true`
-silently starts nothing:
+silently starts nothing.
+
+For Python, install `pyright`:
 
 ```bash
-npm install -g pyright        # Python
-npm install -g typescript typescript-language-server   # TS/JS
+npm install -g pyright
+```
+
+For TypeScript and JavaScript, install the TypeScript language server:
+
+```bash
+npm install -g typescript typescript-language-server
 ```
 
 ## Customise
@@ -202,12 +234,18 @@ Nothing here is sacred. Common changes:
   `PLLuM-12B`). Irrelevant for academic and research use, which is what PLGrid grants
   are for. It only matters if you have a commercial affiliation — then substitute
   `Qwen3.6-35B-A3B` or `Qwen3-Coder-30B-A3B`.
-- **The model list is a snapshot.** PLGrid adds and retires models. Re-check with:
+- **The model list is a snapshot.** PLGrid adds and retires models. To re-check the
+  raw catalog, export your key as `LLMLAB_API_KEY` and run:
   ```bash
-  curl -H "Authorization: Bearer $KEY" \
-    https://llmlab.plgrid.pl/api/v1/models-plgrid-format | python3 -m json.tool
+  curl -H "Authorization: Bearer $LLMLAB_API_KEY" https://llmlab.plgrid.pl/api/v1/models-plgrid-format | python3 -m json.tool
   ```
   That endpoint is authoritative for `function_calling_supported` and `is_active`.
+  For one line per model with its price and capability tags, run the helper script
+  instead. It reads the key from the repo-root `.env` and needs `requests` and
+  `python-dotenv` ([details](research/list_models.md)):
+  ```bash
+  python3 research/list_models.py
+  ```
 
 ## Honest expectations
 
