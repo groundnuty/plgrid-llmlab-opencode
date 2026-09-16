@@ -48,11 +48,11 @@ def list_llmlab_models():
                 tags.append("Accessible")
             if not model.get("accessible"):
                 tags.append("Inaccessible")
-            if model.get("is_non_commercial"):
+            if model.get("is_commercial") is False:
                 tags.append("Non-commercial")
-            if model.get("supports_function_calling"):
+            if model.get("function_calling_supported"):
                 tags.append("FC")
-            if model.get("is_embedding"):
+            if model.get("model_type") == "embedding":
                 tags.append("EMB")
             if model.get("is_beta"):
                 tags.append("Beta")
