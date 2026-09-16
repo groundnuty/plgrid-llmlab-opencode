@@ -66,8 +66,8 @@ run *after* they made their own test suite green. See [research/models.md](resea
 
 | Model | Context | tok/s | Correct | Use for |
 |---|---|---|---|---|
-| `deepseek-ai/DeepSeek-V4.1-Flash` | — | — | not measured | **default** — see note below |
-| `zai-org/GLM-5.2-FP8` | 393k | 62 | 22/22 | hardest tasks, largest context |
+| `deepseek-ai/DeepSeek-V4.1-Flash` | 1M | — | not measured | **default** — see note below |
+| `zai-org/GLM-5.2-FP8` | 393k | 62 | 22/22 | hardest measured tasks |
 | `Qwen/Qwen3-Coder-30B-A3B` | 249k | 90 | 21/22 | well-specified edits |
 | `google/gemma-4-31B` | 262k | 37 | 22/22 | `small_model`; simple tasks |
 | `Qwen/Qwen3.6-27B` | 262k | 26 | 22/22 | review — most thorough, slowest |

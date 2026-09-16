@@ -15,14 +15,15 @@ executes them. A model that cannot emit them cannot read a file, write a file or
 a command — only produce chat text.
 
 The gateway is authoritative on this. `GET /api/v1/models-plgrid-format` returns a
-`function_calling_supported` boolean per model. **Only 7 of 16 models have it.**
+`function_calling_supported` boolean per model. **Only 11 of the 17 chat models in
+the plugin have it** (the embedding model is excluded from the plugin).
 
 Trust that field over inference. Probing with `tool_choice: "auto"` and watching for
 an HTTP 400 gives a *false positive* on at least one model (`QwQ-32B`): vLLM accepts
 the parameter, but the model has no tool-call parser configured, so nothing usable
 comes back.
 
-## 2. The 7 tool-capable models
+## 2. The tool-capable models
 
 Measured on two agentic fixtures plus hidden differential cases (method in
 [benchmarks/](benchmarks/)). "Correct" counts hidden cases the model never saw, run
@@ -31,18 +32,22 @@ with an identical 300-token budget.
 
 | Model | Context | tok/s | Correct | Notes |
 |---|---|---|---|---|
-| `zai-org/GLM-5.2-FP8` | 393k | 62 | 22/22 | Strongest overall; largest context |
-| `zai-org/GLM-4.7-Flash` | 202k | 123 | 22/22 | Best speed/correctness balance |
+| `deepseek-ai/DeepSeek-V4.1-Flash` | **1M** | — | not measured | Current default; context measured, reliability not yet |
+| `zai-org/GLM-5.2-FP8` | 393k | 62 | 22/22 | Strongest measured overall |
 | `Qwen/Qwen3-Coder-30B-A3B-Instruct` | 249k | 90 | 21/22 | One missing `isinstance` guard |
 | `google/gemma-4-31B` | 262k | 37 | 22/22 | Not a coding model, but reliable |
 | `Qwen/Qwen3.6-27B` | 262k | 26 | 22/22 | Most thorough, slowest by 6× |
 | `Qwen/Qwen3.6-35B-A3B` | 262k | **165** | **19/22** ⚠ | Fastest; see §3 |
 | `speakleash/Bielik-11B-v3.0-Instruct` | 32k | — | see §4 | Polish; not for agentic work |
 
+Four more tool-capable models (`Llama-3.3-70B-Instruct`, `Qwen3.8-27B`,
+`Qwen3.5-122B-A10B`, `Qwen3.5-397B-A17B-FP8`) have not been benchmarked; the
+Qwen3.5/3.8 rows are also grant-gated here. `Bielik-11B-v3.0` is tool-capable but
+chat-only (§4).
+
 Published SWE-bench Verified, for context only (third-party, different harnesses):
-Qwen3.6-27B 77.2 · Qwen3.6-35B-A3B 73.4 · GLM-4.7-Flash 59.2 ·
-Qwen3-Coder-30B 50.3–72.5 (scaffold-dependent). GLM-5.2 reports SWE-bench **Pro**
-62.1 and MCP-Atlas 77.0.
+Qwen3.6-27B 77.2 · Qwen3.6-35B-A3B 73.4 · Qwen3-Coder-30B 50.3–72.5
+(scaffold-dependent). GLM-5.2 reports SWE-bench **Pro** 62.1 and MCP-Atlas 77.0.
 
 ## 3. A green test suite is not a correct solution
 
@@ -74,12 +79,11 @@ unprompted when a test required money not to drift, which is the right instinct.
 Across 18 agentic runs, **no model edited the test suite** to force a pass (md5-guarded),
 and **no raw tool-call markup leaked** into output.
 
-## 4. The 9 models without function calling
+## 4. The 6 models without function calling
 
 `QwQ-32B` · `Qwen3-VL-8B-Instruct` · `Bielik-11B-v2.6-Instruct` ·
 `Llama-PLLuM-70B-chat-250801` · `pllum-12b-nc-chat-250715` ·
-`Llama-3.3-70B-Instruct` *(also server-side inactive)* · `Qwen3.5-122B-A10B` and
-`Qwen3.5-397B-A17B-FP8` *(both grant-gated)*
+`DeepSeek-V4-Flash-0731` *(also grant-gated)*
 
 They are still worth having configured for chat, translation and Polish-language
 work — **but only through a tools-disabled agent.**
@@ -123,14 +127,17 @@ call tools, so use it through the `chat` agent.
 `models-plgrid-format` also returns `accessible` (which grants may call the model)
 and `is_commercial`.
 
-- **Grant gating is a hard failure.** `zai-org/GLM-5.2-FP8` is restricted to
-  specific grants, and `Qwen3.5-122B-A10B` / `Qwen3.5-397B-A17B-FP8` may return
-  `"not available for grant 'N'"`. If the default model fails this way for you, see
-  the model-swap note in the root [README](../README.md#known-issues).
-- **Non-commercial flags** (`GLM-5.2-FP8`, `Qwen3.6-27B`, `gemma-4-31B`) do not
-  affect academic or research use, which is what PLGrid grants are for. They only
-  bind users with a commercial affiliation, who should substitute
-  `Qwen3.6-35B-A3B`, `Qwen3-Coder-30B-A3B` or `GLM-4.7-Flash`.
+- **Grant gating is a hard failure.** `zai-org/GLM-5.2-FP8` and the current default
+  `deepseek-ai/DeepSeek-V4.1-Flash` are restricted to specific grants, and
+  `Qwen3.5-122B-A10B` / `Qwen3.5-397B-A17B-FP8` / `Qwen3.8-27B` /
+  `DeepSeek-V4-Flash-0731` return `"not available for grant 'N'"` for this account.
+  If the default model fails this way for you, see the model-swap note in the root
+  [README](../README.md#known-issues).
+- **Non-commercial flags** (`GLM-5.2-FP8`, `Qwen3.6-27B`, `gemma-4-31B`,
+  `DeepSeek-V4.1-Flash`, `DeepSeek-V4-Flash-0731`, `PLLuM-12B`) do not affect
+  academic or research use, which is what PLGrid grants are for. They only bind users
+  with a commercial affiliation, who should substitute `Qwen3.6-35B-A3B` or
+  `Qwen3-Coder-30B-A3B`.
 
 Credit cost per million tokens ranges from 0.05 (embedding) to 7.15
 (`Llama-PLLuM-70B`), and a typical short agentic exchange costs a small fraction of
@@ -143,14 +150,16 @@ Reasoning behind the agents in `opencode.json`:
 
 | Role | Model | Why |
 |---|---|---|
-| default, planning, research | `GLM-5.2-FP8` | Perfect correctness; 393k context is what investigation needs |
-| fast mechanical edits | `GLM-4.7-Flash` | 123 tok/s *and* perfect correctness — the fastest model that is also reliable |
+| default, planning, research | `DeepSeek-V4.1-Flash` | Current default: 1M context, but **no benchmark score yet** — swap to `GLM-5.2-FP8` if you want the measured option |
+| fast mechanical edits | `Qwen3.6-35B-A3B` | Fastest model; reassigned to `fastfix` when `GLM-4.7-Flash` went inactive — see the warning in §3 |
 | code review | `Qwen3.6-27B` | Perfect correctness; slowest measured (26 tok/s), a deliberate quality-over-speed trade |
 | `small_model` (titles) | `gemma-4-31B` | Cheap, reliable, no reasoning overhead |
 | Polish-language chat | `Bielik-11B-v3.0` | Via the `chat` agent only |
 
 Note what is *not* recommended: `Qwen3.6-35B-A3B` for unattended edits despite being
 the fastest model by 34%. Speed is worth nothing if the output is silently wrong.
+It is currently the `fastfix` model only because the previous choice was retired —
+treat its diffs accordingly.
 
 ## 7. Honest limits
 
@@ -160,11 +169,12 @@ multi-file work they are genuinely good and fast. For multi-file refactors with
 ambiguous requirements, expect a real gap against frontier models.
 
 The benchmarks behind this page are two fixtures and 18 runs in one language, on
-self-contained files. They establish that five of six models are reliably correct on
-multi-file defect fixing and small design changes, and they caught one real
-reliability problem. They say nothing about large codebases, long sessions near
-context limits, or ambiguous requirements. `Qwen3.6-35B-A3B`'s inconsistency is one
-observation in three runs — the failure is confirmed, its *rate* is unknown.
+self-contained files. They establish that four of the five benchmarked models are
+reliably correct on multi-file defect fixing and small design changes, and they
+caught one real reliability problem. They say nothing about large codebases, long
+sessions near context limits, or ambiguous requirements. `Qwen3.6-35B-A3B`'s
+inconsistency is one observation in three runs — the failure is confirmed, its
+*rate* is unknown. `DeepSeek-V4.1-Flash` has not been through the fixtures at all.
 
 What you get in exchange for the capability gap: data stays on Polish academic
 infrastructure, administrators cannot read request or response content, and nothing

@@ -210,11 +210,14 @@ before it does anything. A 32k-context model can never reach that. It is useful 
 
 ### Reasoning models need `interleaved`
 
-GLM and Qwen reasoning models stream chain-of-thought in a separate
-`reasoning_content` delta field. Without
+GLM, Qwen and DeepSeek reasoning models stream chain-of-thought in a separate delta
+field. The field name is a property of the deployment: the current PLGrid gateway
+(vLLM 0.29) emits `reasoning`, older ones used `reasoning_content`, and OpenCode's
+own default for an `@ai-sdk/openai-compatible` provider whose model id contains
+`deepseek` is `reasoning_content`. Set it explicitly. Without
 
 ```json
-"interleaved": { "field": "reasoning_content" }
+"interleaved": { "field": "reasoning" }
 ```
 
 the thinking either vanishes or leaks into the answer as raw `<think>` text.

@@ -106,11 +106,14 @@ Each entry carries:
 - `tool_call` — from the gateway's `function_calling_supported` field
 - `limit.output` — deliberately well under `context` (see the `limit.output` pitfall
   in [pitfalls.md](pitfalls.md))
-- `interleaved: { field: "reasoning_content" }` on reasoning models
+- `interleaved: { field: "reasoning" }` on reasoning models (the field the current
+  gateway actually emits — not `reasoning_content`; see [reproducing.md](reproducing.md))
 - `attachment: true` on the vision model
 
-Grant-gated and inactive models are **included and labelled** rather than omitted, so
-that a user without access gets a legible error instead of a missing entry.
+Unavailable models (`is_active: false`, or no grant in `accessible`) are **omitted**
+rather than listed and labelled; models that are merely grant-gated but otherwise
+accessible are kept, because the failure is then legible as a `not available for
+grant` error.
 
 ## Distributing it
 

@@ -40,19 +40,62 @@ the PLGrid-format endpoint instead.
 
 ## Real context limit
 
-Ask for an absurd `max_tokens` and read the limit out of the error:
+The server refuses an output budget larger than the model's window, and the refusal
+names the window. Send an impossible `max_tokens` and read the number out of the
+error:
 
 ```bash
 curl -sH "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"model":"Qwen/Qwen3.6-27B","messages":[{"role":"user","content":"hi"}],
-       "max_tokens":100000000}' \
+       "max_tokens":2000000000}' \
   https://llmlab.plgrid.pl/api/v1/chat/completions
 ```
 
-The response names either `maximum context length is N` or
-`max_model_len=max_total_tokens=N`. This is how every `limit.context` in
-`opencode.json` was derived — do not trust model cards, which frequently disagree
-with what the deployment actually serves.
+The response names either `max_model_len=max_total_tokens=N` (current deployments)
+or `maximum context length is N tokens` (older ones). Both are the *whole* window —
+input plus output — not the usable output budget.
+
+Use a value that cannot be a real context, with a trivially short prompt. If
+`max_tokens` lands *inside* the window the request is not rejected: it runs and can
+bill you for generating that many tokens. `100000000` was enough for every model
+here, but `2000000000` removes the risk that some future deployment has a window
+larger than the probe.
+
+Loop the whole catalog and print a table (handles both error phrasings):
+
+```bash
+curl -sH "Authorization: Bearer $KEY" \
+  https://llmlab.plgrid.pl/api/v1/models-plgrid-format |
+python3 -c '
+import sys, json, re, urllib.request, urllib.error
+K = open("/Users/you/.config/opencode/plgrid.key").read().strip()
+URL = "https://llmlab.plgrid.pl/api/v1/chat/completions"
+for m in json.load(sys.stdin):
+    body = json.dumps({"model": m["model_name"], "max_tokens": 2000000000,
+                       "messages": [{"role": "user", "content": "hi"}]}).encode()
+    req = urllib.request.Request(URL, data=body,
+        headers={"Authorization": f"Bearer {K}", "Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(req, timeout=120)
+        print(f"{m[\"model_name\"]:44} no error (check manually)")
+    except urllib.error.HTTPError as e:
+        t = e.read().decode()
+        g = re.search(r"max_total_tokens=(\d+)", t) or \
+            re.search(r"maximum context length is (\d+) tokens", t)
+        if g:
+            print(f"{m[\"model_name\"]:44} context={g.group(1)}")
+        else:
+            print(f"{m[\"model_name\"]:44} unreachable: {json.loads(t).get(\"detail\", t)[:70]}")'
+```
+
+Two refinements over a bare probe:
+
+- **The number is the total window, not the output budget.** Set `limit.output`
+  well below it: OpenCode passes it verbatim as `max_tokens`, and the gateway
+  enforces `input + max_tokens <= context`. `/models-plgrid-format` also advertises
+  a `default_max_tokens_limit` for some models; where present it is a safe ceiling.
+- **A row with no number is unreachable, not small.** Grant gating and
+  `is_active: false` (HTTP 503) produce no context to measure until access is fixed.
 
 ## Throughput
 
@@ -64,7 +107,7 @@ python3 - <<'PY'
 import json, time, statistics, urllib.request
 K = open('/Users/you/.config/opencode/plgrid.key').read().strip()
 URL = "https://llmlab.plgrid.pl/api/v1/chat/completions"
-MODELS = ["zai-org/GLM-5.2-FP8", "zai-org/GLM-4.7-Flash",
+MODELS = ["zai-org/GLM-5.2-FP8", "deepseek-ai/DeepSeek-V4.1-Flash",
           "Qwen/Qwen3.6-27B", "Qwen/Qwen3.6-35B-A3B",
           "Qwen/Qwen3-Coder-30B-A3B-Instruct", "google/gemma-4-31B"]
 PROMPT = ("Write a Python function that reverses a linked list iteratively. "
@@ -116,17 +159,30 @@ is the reliable answer.
 
 ## Reasoning channel
 
-To see whether a model separates its chain-of-thought (and therefore needs
-`interleaved`):
+Whether a model separates its chain-of-thought (and therefore needs `interleaved`)
+is a property of the deployment, not of the model card. Probe the streaming deltas
+and print the fields that actually carry text:
 
 ```bash
 curl -sN -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"model":"zai-org/GLM-4.7-Flash","messages":[{"role":"user","content":"say hi"}],
-       "max_tokens":20,"stream":true}' \
-  https://llmlab.plgrid.pl/api/v1/chat/completions | head -5
+  -d '{"model":"zai-org/GLM-5.2-FP8","messages":[{"role":"user","content":"say hi"}],
+       "max_tokens":30,"stream":true}' \
+  https://llmlab.plgrid.pl/api/v1/chat/completions |
+grep -o '"delta":{[^}]*}' | head
 ```
 
-Look for `"reasoning_content"` in the delta objects.
+The current gateway (vLLM 0.29) emits `"reasoning":"..."`. Older deployments used
+`"reasoning_content"`, and OpenCode's own default for an `@ai-sdk/openai-compatible`
+provider whose model id contains `deepseek` is still `reasoning_content` — so the
+field must be set explicitly in the plugin:
+
+```js
+"interleaved": { "field": "reasoning" }
+```
+
+A model that keeps its thinking inline in `content` (here `QwQ-32B` and
+`Qwen3-Coder-30B-A3B`) has no separate channel: leave `reasoning` off rather than
+pointing it at a field that never appears.
 
 ## Vision
 

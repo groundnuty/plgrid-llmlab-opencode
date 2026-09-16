@@ -57,6 +57,10 @@ const MODELS = {
     "reasoning": true,
     "interleaved": {
       "field": "reasoning"
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 32768
     }
   },
   "deepseek-ai/DeepSeek-V4-Flash-0731": {
