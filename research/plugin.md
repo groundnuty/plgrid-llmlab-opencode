@@ -40,7 +40,7 @@ grant, a plugin is the better fit, not a lesser one.
 
 Two hooks, about 40 lines total.
 
-**`config`** — injects the provider and all 15 models at startup:
+**`config`** — injects the provider and all 17 models at startup:
 
 ```js
 config: async (config) => {
@@ -81,13 +81,13 @@ In a directory containing **only** `.opencode/plugins/plgrid.js` — no
 ```
 $ opencode models plgrid
 plgrid/CYFRAGOVPL/Llama-PLLuM-70B-chat-250801
-… all 15 models …
+… all 17 models …
 
 $ opencode providers login -p plgrid
 ◆  Enter your API key
 └  Done                    # auth.json now holds {"plgrid":{"type":"api","key":"plg-…"}}
 
-$ opencode run -m plgrid/zai-org/GLM-4.7-Flash 'Create ok.txt containing exactly: SHIPPED'
+$ opencode run -m plgrid/zai-org/GLM-5.2-FP8 'Create ok.txt containing exactly: SHIPPED'
 ←  Write ok.txt
 $ cat ok.txt
 SHIPPED
