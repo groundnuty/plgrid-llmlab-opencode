@@ -105,11 +105,11 @@ runs per model; see [research/models.md](research/models.md).
 | `zai-org/GLM-5.2-FP8` | 393k | 65 | 22 · 22 · 22 | hardest measured tasks |
 | `google/gemma-4-31B` | 262k | 38 | 22 · 22 · 22 | `small_model`; simple tasks |
 | `Qwen/Qwen3.6-27B` | 262k | 49 | 22 · 22 · 22 ⚠ | review — but see below |
-| `Qwen/Qwen3.6-35B-A3B` | 262k | **239** | 22 · 22 · 21 ⚠ | fastest, now `fastfix` — but see below |
+| `Qwen/Qwen3.6-35B-A3B` | 262k | **239** | 22 · 22 · 21 ⚠ | fastest; `fastfix` — but see below |
 
-`DeepSeek-V4.1-Flash` became the default in `opencode.json` after `GLM-4.7-Flash`
-went inactive; like `GLM-5.2-FP8` and `gemma-4-31B`, it passed every hidden case in
-all six blind runs. `GLM-5.2-FP8` remains the measured fallback.
+`DeepSeek-V4.1-Flash` is the default in `opencode.json`; like `GLM-5.2-FP8` and
+`gemma-4-31B`, it passed every hidden case in all six blind runs. `GLM-5.2-FP8` is the
+measured fallback.
 
 ⚠ **`Qwen3.6-35B-A3B` is the fastest model, and it produces silently-wrong
 solutions.** In an early trial it made the whole test suite pass while
@@ -117,8 +117,8 @@ solutions.** In an early trial it made the whole test suite pass while
 In the earlier blind round it did it again: every spec test green, `2 * 3 * 4` → 6.
 Its other runs were clean apart from missed `isinstance` guards, and from outside the
 two outcomes are indistinguishable without hidden cases. Use it where you review the
-output; do not use it unattended. When `GLM-4.7-Flash` went inactive it was pointed at
-`fastfix` anyway — treat that agent's diffs as needing review.
+output; do not use it unattended. It is the `fastfix` model, so treat that agent's
+diffs as needing review.
 
 ⚠ **`Qwen3.6-27B` was perfect in the final runs but not in the earlier round.** There
 it once missed an `isinstance` guard, so `Money(10, "PLN") == 42` raised instead of
