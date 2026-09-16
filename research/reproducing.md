@@ -99,44 +99,32 @@ Two refinements over a bare probe:
 
 ## Throughput
 
-Median of three, identical token budget, so that model speed is not confounded with
-how much work a model chooses to do:
+Fixed output length, streamed, interleaved across models:
 
 ```bash
-python3 - <<'PY'
-import json, time, statistics, urllib.request
-K = open('/Users/you/.config/opencode/plgrid.key').read().strip()
-URL = "https://llmlab.plgrid.pl/api/v1/chat/completions"
-MODELS = ["zai-org/GLM-5.2-FP8", "deepseek-ai/DeepSeek-V4.1-Flash",
-          "Qwen/Qwen3.6-27B", "Qwen/Qwen3.6-35B-A3B",
-          "Qwen/Qwen3-Coder-30B-A3B-Instruct", "google/gemma-4-31B"]
-PROMPT = ("Write a Python function that reverses a linked list iteratively. "
-          "Code only, no explanation.")
-
-def once(m):
-    body = {"model": m, "max_tokens": 300, "temperature": 0,
-            "messages": [{"role": "user", "content": PROMPT}]}
-    r = urllib.request.Request(URL, data=json.dumps(body).encode(),
-        headers={"Authorization": f"Bearer {K}", "Content-Type": "application/json"})
-    t0 = time.time()
-    with urllib.request.urlopen(r, timeout=300) as resp:
-        d = json.loads(resp.read())
-    el = time.time() - t0
-    ct = (d.get("usage") or {}).get("completion_tokens") or 0
-    return el, ct, ct / el if el else 0
-
-for m in MODELS:
-    runs = [once(m) for _ in range(3)]
-    print(f"{m:38} {statistics.median(r[0] for r in runs):6.1f}s "
-          f"{statistics.median(r[1] for r in runs):5.0f} tok "
-          f"{statistics.median(r[2] for r in runs):6.1f} tok/s")
-PY
+export LLMLAB_API_KEY=...        # or: set -a; . ./.env; set +a
+python3 research/benchmarks/gateway.py throughput --repeats 5 \
+  zai-org/GLM-5.2-FP8 deepseek-ai/DeepSeek-V4.1-Flash Qwen/Qwen3.6-27B \
+  Qwen/Qwen3.6-35B-A3B Qwen/Qwen3-Coder-30B-A3B-Instruct google/gemma-4-31B
 ```
 
-**Interpretation warning.** A model that stops early looks fast on wall-clock but
-produced less. Compare `tok/s`, and check the token count — two of the six models
-stopped well before 300 tokens, so their latency figures are not comparable while
-their throughput is.
+Every request forces exactly 300 output tokens (`min_tokens` and `max_tokens`
+together, which the gateway honours), so a model that would stop early is measured
+over the same length as one that would not. The columns are `tok/s`, the generation
+rate between the first and last streamed token; `ttft s`, time to first token; and
+`e2e tok/s`, tokens over total wall time. A `WARN token counts` status means
+`min_tokens` was ignored and the row is not comparable.
+
+**Interpretation warnings.**
+
+- **A budget is not a length.** Without `min_tokens`, a model that stops after about 50
+  tokens has its rate dominated by fixed latency. That understated `Qwen3-Coder-30B` at
+  88 tok/s; at a forced 300 tokens its generation rate was 146.
+- **The gateway is shared, and its load moves within minutes.** `Qwen3.6-35B-A3B`
+  measured 54, 174 and 213 tok/s in three runs two minutes apart. The rounds are
+  interleaved so a load spike hits every model, and the range column shows the spread:
+  when two models' ranges overlap, do not rank them. A figure from one afternoon is a
+  snapshot, not a property of the model.
 
 ## Tool-calling support, directly
 
@@ -208,14 +196,14 @@ See [benchmarks/README.md](benchmarks/README.md). Two fixtures plus differential
 scorers; the important part of the method is that scoring happens on **hidden cases
 the model never saw**, not on the test suite it was asked to make pass.
 
-Three warnings, learned the hard way:
+```bash
+REPEATS=3 research/benchmarks/bench-all.sh     # report and TSV in research/benchmarks/results/
+```
 
-- **Run models sequentially.** Concurrent `opencode` instances contend on one SQLite
-  database and fail with `database is locked`.
-- **Score only after every run has finished.** Reading a working directory while the
-  agent is still editing gives a half-written file and a wrong result.
-- **Check the exit code is not your only signal.** `opencode run` occasionally exits
-  0 having done nothing; assert on the artifact.
+The warnings learned the hard way — isolate every run, keep the scorer out of reach,
+never name the working directory after the package, run sequentially, score only
+settled directories, guard the spec, distrust the exit code, repeat — are in the
+[method notes](benchmarks/README.md#method-notes). The runner handles all of them.
 
 ## Auditing what an agent actually did
 

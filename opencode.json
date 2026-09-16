@@ -72,7 +72,7 @@
       "steps": 5
     },
     "reviewer": {
-      "description": "Reviews code for correctness, security and maintainability. Reads only - never edits or runs commands. Qwen3.6-27B is the slowest model here (26 tok/s) - a deliberate quality-over-speed trade, backed by 14/14 differential correctness.",
+      "description": "Reviews code for correctness, security and maintainability. Reads only - never edits or runs commands. Qwen3.6-27B is a deliberate quality-over-speed trade (49 tok/s on a quiet gateway): 22/22 hidden cases in the three final benchmark runs, after one missed guard and one stalled run in the three before.",
       "mode": "subagent",
       "model": "plgrid/Qwen/Qwen3.6-27B",
       "temperature": 0.1,

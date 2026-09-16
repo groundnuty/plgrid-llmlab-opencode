@@ -57,43 +57,66 @@ opencode                  # TUI; /models to switch, Tab to switch agent
 
 ## What you get
 
-**17 models**, of which **11 support function calling** and **5 were benchmarked as
-reliably agentic**:
+**17 models**, of which **11 support function calling** and **3 passed every hidden
+test case in all six blind benchmark runs**:
 
-Throughput is measured at the gateway (median of 3, identical 300-token budget).
-"Correct" is the share of hidden test cases passed — cases the models never saw,
-run *after* they made their own test suite green. See [research/models.md](research/models.md).
+tok/s is the generation rate at the gateway for a forced 300-token output (median of 3,
+2026-09-16 12:45, [raw](research/benchmarks/results/throughput-20260916-1245.txt)).
+**It depends heavily on gateway load:** the same measurement at 14:16 that day, under
+load, came out roughly 2–8× lower, with runs of one model ranging from 13 to 60 tok/s
+and up to 8 s before the first token. Read the column as best-case and the ranking as
+approximate.
 
-| Model | Context | tok/s | Correct | Use for |
+"Correct" is hidden test cases passed out of 22 — cases the model never saw, run
+*after* it made its own test suite green — in each of the three runs of the final
+benchmark on 2026-09-16, where every run was isolated from the scorer, the repository
+and the other runs ([report](research/benchmarks/results/bench-20260916-141623.txt)).
+An earlier blind round the same day, with a less isolated harness, adds three more
+runs per model; see [research/models.md](research/models.md).
+
+| Model | Context | tok/s | Correct (3 runs) | Use for |
 |---|---|---|---|---|
-| `deepseek-ai/DeepSeek-V4.1-Flash` | 1M | — | not measured | **default** — see note below |
-| `zai-org/GLM-5.2-FP8` | 393k | 62 | 22/22 | hardest measured tasks |
-| `Qwen/Qwen3-Coder-30B-A3B` | 249k | 90 | 21/22 | well-specified edits |
-| `google/gemma-4-31B` | 262k | 37 | 22/22 | `small_model`; simple tasks |
-| `Qwen/Qwen3.6-27B` | 262k | 26 | 22/22 | review — most thorough, slowest |
-| `Qwen/Qwen3.6-35B-A3B` | 262k | **165** | **19/22** ⚠ | fastest, now `fastfix`, but see below |
+| `deepseek-ai/DeepSeek-V4.1-Flash` | 1M | 98 | 22 · 22 · 22 | **default** — fast and verified |
+| `zai-org/GLM-5.2-FP8` | 393k | 65 | 22 · 22 · 22 | hardest measured tasks |
+| `google/gemma-4-31B` | 262k | 38 | 22 · 22 · 22 | `small_model`; simple tasks |
+| `Qwen/Qwen3.6-27B` | 262k | 49 | 22 · 22 · 22 ⚠ | review — but see below |
+| `Qwen/Qwen3.6-35B-A3B` | 262k | **239** | 22 · 22 · 21 ⚠ | fastest, now `fastfix` — but see below |
 
 `DeepSeek-V4.1-Flash` became the default in `opencode.json` after `GLM-4.7-Flash`
-went inactive; it has **not** been through the benchmark suite, so its reliability
-is unverified. `GLM-5.2-FP8` remains the measured fallback.
+went inactive; like `GLM-5.2-FP8` and `gemma-4-31B`, it passed every hidden case in
+all six blind runs. `GLM-5.2-FP8` remains the measured fallback.
 
-⚠ **`Qwen3.6-35B-A3B` is the fastest model and the only one that produced a
-silently-wrong solution.** In one of two trials it made the whole test suite pass
-while `evaluate("2 * 3 * 4")` returned 10 instead of 24 — a green suite over broken
-code. Its other trial produced a clean recursive-descent parser. Same task, same
-prompt. Use it where you review the output; do not use it unattended. When
-`GLM-4.7-Flash` went inactive it was pointed at `fastfix` anyway — treat that agent's
-diffs as needing review.
+⚠ **`Qwen3.6-35B-A3B` is the fastest model, and it produces silently-wrong
+solutions.** In an early trial it made the whole test suite pass while
+`evaluate("2 * 3 * 4")` returned 10 instead of 24 — a green suite over broken code.
+In the earlier blind round it did it again: every spec test green, `2 * 3 * 4` → 6.
+Its other runs were clean apart from missed `isinstance` guards, and from outside the
+two outcomes are indistinguishable without hidden cases. Use it where you review the
+output; do not use it unattended. When `GLM-4.7-Flash` went inactive it was pointed at
+`fastfix` anyway — treat that agent's diffs as needing review.
 
-`Qwen3-Coder-30B`'s single miss was a missing `isinstance` guard in `__eq__`, so
-`Money(10,"PLN") == 42` raised `AttributeError` instead of returning `False`.
+⚠ **`Qwen3.6-27B` was perfect in the final runs but not in the earlier round.** There
+it once missed an `isinstance` guard, so `Money(10, "PLN") == 42` raised instead of
+returning `False`, and once wrote a stray `[Tool Result]` after two tool calls and
+ended its turn, so `opencode run` exited 0 with nothing fixed.
+
+`Qwen3-Coder-30B-A3B` (21 · 22 · 21, 146 tok/s) is better than its earlier record: its
+only miss was the same `isinstance` guard. The earlier round scored it 14 every time
+because that harness named the working directory `ledger/`, like the package inside
+it, which let misplaced modules pass their own tests; and the original report's 0/22
+came from a single malformed first tool call. Two tool-capable models **fail these
+fixtures**. `Llama-3.3-70B` (3 · 19 · 10) solved `calc` once, but hit the 30-step cap
+in half its runs, left one solution that never returns, and **edited the test file in
+every final `ledger` run** — weakening the tests to fit its own code, twice until they
+all passed; against the original tests it passes 5 of 7. `Bielik-11B-v3.0` also has function calling but
+is treated as chat-only — it scored 0 in every run, loses track of the working
+directory, and **fabricates passing pytest reports**.
 
 The remaining 6 are configured but **cannot use tools** — all 6 lack function
 calling entirely. They remain useful for chat, translation, and Polish-language work.
-`Bielik-11B-v3.0` does have function calling but loses track of the working
-directory, so it is treated as chat-only. Five tool-capable models
-(`DeepSeek-V4.1-Flash`, `Llama-3.3-70B-Instruct`, `Qwen3.8-27B`, `Qwen3.5-122B-A10B`,
-`Qwen3.5-397B-A17B-FP8`) were not benchmarked.
+Three tool-capable models (`Qwen3.8-27B`, `Qwen3.5-122B-A10B`,
+`Qwen3.5-397B-A17B-FP8`) were not benchmarked because this account's grant cannot
+reach them.
 
 > **Important:** to use a model without function calling, switch to the `chat`
 > agent first (**Tab** in the TUI, or `--agent chat`). The default `build` and
@@ -112,7 +135,9 @@ directory, so it is treated as chat-only. Five tool-capable models
 
 Invoke subagents with `@researcher`, `@reviewer`, `@fastfix`. Cycle primary agents
 (`architect`, `chat`, and the built-in `build`/`plan`) with **Tab** in the TUI, or
-pass `--agent <name>` to `opencode run`.
+pass `--agent <name>` to `opencode run`. The benchmark's own `bench` agent is not
+here: it lives in `research/benchmarks/bench-opencode.json`, loaded only by the
+benchmark runner.
 
 `AGENTS.md` is deliberately short and contains only directives — it is prepended to
 every agent's system prompt, so anything descriptive in it is paid for on every

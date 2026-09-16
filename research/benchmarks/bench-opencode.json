@@ -1,0 +1,26 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "share": "disabled",
+  "formatter": false,
+  "permission": {
+    "external_directory": "deny",
+    "webfetch": "deny",
+    "bash": {
+      "*": "allow",
+      "rm -rf *": "deny",
+      "git push *": "deny",
+      "git rebase*": "deny",
+      "git reset --hard*": "deny"
+    }
+  },
+  "agent": {
+    "bench": {
+      "description": "Benchmark driver for the fixture tasks in research/benchmarks/. Same tools as the built-in build agent, but with a bounded step count so a spinning model stops, and task delegation denied so the measured model cannot hand the work to a different one. Loaded only by bench-all.sh, which points OPENCODE_CONFIG_DIR at a copy of this file plus the plgrid plugin.",
+      "mode": "primary",
+      "permission": {
+        "task": "deny"
+      },
+      "steps": 30
+    }
+  }
+}
