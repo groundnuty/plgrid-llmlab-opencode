@@ -238,15 +238,15 @@ Reasoning behind the agents in `opencode.json`:
 | Role | Model | Why |
 |---|---|---|
 | default, planning, research | `DeepSeek-V4.1-Flash` | 1M context and 22/22 in all six blind runs; fastest of the reliable models |
-| fast mechanical edits | `Qwen3.6-35B-A3B` | Fastest model, ~1.6× the next; reassigned to `fastfix` when `GLM-4.7-Flash` went inactive — see the warning in §3 |
+| fast mechanical edits | `Qwen3.6-35B-A3B` | Fastest model, ~1.6× the next — but see the warning in §3 |
 | code review | `Qwen3.6-27B` | 22/22 in the three final runs, one missed guard and one stalled run in the three before; 49 tok/s, a deliberate quality-over-speed trade |
 | `small_model` (titles) | `gemma-4-31B` | Cheap, reliable, no reasoning overhead |
 | Polish-language chat | `Bielik-11B-v3.0` | Via the `chat` agent only |
 
 Note what is *not* recommended: `Qwen3.6-35B-A3B` for unattended edits despite being
 the fastest model by ~1.6×. Speed is worth nothing if the output is silently wrong.
-It is currently the `fastfix` model only because the previous choice was retired —
-treat its diffs accordingly.
+It is the `fastfix` model, whose edits are small and meant to be reviewed — treat its
+diffs accordingly.
 
 ## 7. Honest limits
 
