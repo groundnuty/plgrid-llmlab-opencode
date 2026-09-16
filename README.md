@@ -4,8 +4,9 @@ A working, sane OpenCode setup for the PLGrid Forge models on ACK Cyfronet
 supercomputers. Drop it in, log in once, and you have an agentic coding assistant
 running on Polish academic infrastructure.
 
-Every model flag and context limit here was **measured against the live gateway**,
-not copied from model cards.
+Model capabilities and the context limits below were **measured against the live
+gateway**, not copied from model cards. A few grant-restricted models could not be
+probed from this account and are left at OpenCode's defaults rather than guessed.
 
 **Documentation:**
 
@@ -50,13 +51,14 @@ Paste your grant's API key. It is stored in
 Verify:
 
 ```bash
-opencode models plgrid    # should list 15 models
+opencode models plgrid    # should list 17 models
 opencode                  # TUI; /models to switch, Tab to switch agent
 ```
 
 ## What you get
 
-**15 models**, of which **6 reliably do agentic work**:
+**17 models**, of which **11 support function calling** and **5 were benchmarked as
+reliably agentic**:
 
 Throughput is measured at the gateway (median of 3, identical 300-token budget).
 "Correct" is the share of hidden test cases passed — cases the models never saw,
@@ -64,25 +66,34 @@ run *after* they made their own test suite green. See [research/models.md](resea
 
 | Model | Context | tok/s | Correct | Use for |
 |---|---|---|---|---|
-| `zai-org/GLM-5.2-FP8` | 393k | 62 | 22/22 | **default** — hardest tasks, largest context |
-| `zai-org/GLM-4.7-Flash` | 202k | **123** | 22/22 | fast edits — best speed/correctness balance |
+| `deepseek-ai/DeepSeek-V4.1-Flash` | — | — | not measured | **default** — see note below |
+| `zai-org/GLM-5.2-FP8` | 393k | 62 | 22/22 | hardest tasks, largest context |
 | `Qwen/Qwen3-Coder-30B-A3B` | 249k | 90 | 21/22 | well-specified edits |
 | `google/gemma-4-31B` | 262k | 37 | 22/22 | `small_model`; simple tasks |
 | `Qwen/Qwen3.6-27B` | 262k | 26 | 22/22 | review — most thorough, slowest |
-| `Qwen/Qwen3.6-35B-A3B` | 262k | **165** | **19/22** ⚠ | fastest, but see below |
+| `Qwen/Qwen3.6-35B-A3B` | 262k | **165** | **19/22** ⚠ | fastest, now `fastfix`, but see below |
+
+`DeepSeek-V4.1-Flash` became the default in `opencode.json` after `GLM-4.7-Flash`
+went inactive; it has **not** been through the benchmark suite, so its reliability
+is unverified. `GLM-5.2-FP8` remains the measured fallback.
 
 ⚠ **`Qwen3.6-35B-A3B` is the fastest model and the only one that produced a
 silently-wrong solution.** In one of two trials it made the whole test suite pass
 while `evaluate("2 * 3 * 4")` returned 10 instead of 24 — a green suite over broken
 code. Its other trial produced a clean recursive-descent parser. Same task, same
-prompt. Use it where you review the output; do not use it unattended.
+prompt. Use it where you review the output; do not use it unattended. When
+`GLM-4.7-Flash` went inactive it was pointed at `fastfix` anyway — treat that agent's
+diffs as needing review.
 
 `Qwen3-Coder-30B`'s single miss was a missing `isinstance` guard in `__eq__`, so
 `Money(10,"PLN") == 42` raised `AttributeError` instead of returning `False`.
 
-The other 9 are configured but **cannot use tools** — 8 lack function calling
-entirely, 1 (`Bielik-11B-v3.0`) has it but loses track of the working directory.
-They remain useful for chat, translation, and Polish-language work.
+The remaining 6 are configured but **cannot use tools** — all 6 lack function
+calling entirely. They remain useful for chat, translation, and Polish-language work.
+`Bielik-11B-v3.0` does have function calling but loses track of the working
+directory, so it is treated as chat-only. Five tool-capable models
+(`DeepSeek-V4.1-Flash`, `Llama-3.3-70B-Instruct`, `Qwen3.8-27B`, `Qwen3.5-122B-A10B`,
+`Qwen3.5-397B-A17B-FP8`) were not benchmarked.
 
 > **Important:** to use a model without function calling, switch to the `chat`
 > agent first (**Tab** in the TUI, or `--agent chat`). The default `build` and
@@ -93,11 +104,11 @@ They remain useful for chat, translation, and Polish-language work.
 
 | Agent | Type | Model | Purpose |
 |---|---|---|---|
-| `architect` | primary | GLM-5.2 | Plans and delegates; **cannot edit files** |
+| `architect` | primary | DeepSeek-V4.1-Flash | Plans and delegates; **cannot edit files** |
 | `chat` | primary | any | No tools — for the non-function-calling models |
-| `researcher` | subagent | GLM-5.2 (393k) | Traces code paths, read-only |
+| `researcher` | subagent | DeepSeek-V4.1-Flash | Traces code paths, read-only |
 | `reviewer` | subagent | Qwen3.6-27B, t=0.1 | Finds defects, read-only |
-| `fastfix` | subagent | GLM-4.7-Flash | Small mechanical edits (~5s) |
+| `fastfix` | subagent | Qwen3.6-35B-A3B | Small mechanical edits — needs review |
 
 Invoke subagents with `@researcher`, `@reviewer`, `@fastfix`. Cycle primary agents
 (`architect`, `chat`, and the built-in `build`/`plan`) with **Tab** in the TUI, or
@@ -147,23 +158,25 @@ Nothing here is sacred. Common changes:
 
 ## Known issues
 
-- **Two models are grant-gated.** `Qwen3.5-122B-A10B` and `Qwen3.5-397B-A17B-FP8`
-  return *"not available for grant 'N'"* unless your grant covers them. They are
-  listed and labelled so the failure is legible. Apply via Helpdesk if you need
-  them.
-- **`Llama-3.3-70B-Instruct` is server-side inactive.** Nothing to fix locally.
+- **Several models are grant-gated.** `Qwen3.5-122B-A10B`, `Qwen3.5-397B-A17B-FP8`,
+  `Qwen3.8-27B` and `DeepSeek-V4-Flash-0731` return *"not available for grant 'N'"*
+  unless your grant covers them; `DeepSeek-V4.1-Flash` and `GLM-5.2-FP8` are
+  restricted to specific grants too, though they answered on the default grant here.
+  Apply via Helpdesk if you need them.
 - **`opencode run` occasionally exits 0 having done nothing** (~3 in 40 runs, cause
   unidentified). Harmless interactively. If you script it, assert on the expected
   artifact, not the exit code.
 - **The default model is itself grant-restricted.** The gateway lists
-  `zai-org/GLM-5.2-FP8` as accessible to specific grants only
-  (`plgint_ppam2026v1` at the time of writing). If every request fails with
-  *"not available for grant 'N'"*, change `model` and the `architect`/`researcher`
-  pins to `plgrid/Qwen/Qwen3.6-35B-A3B`, which is open to all grants.
-- **Three models are flagged non-commercial** by the gateway (`GLM-5.2-FP8`,
-  `Qwen3.6-27B`, `gemma-4-31B`). Irrelevant for academic and research use, which is
-  what PLGrid grants are for. It only matters if you have a commercial affiliation —
-  then substitute `Qwen3.6-35B-A3B`, `Qwen3-Coder-30B-A3B` or `GLM-4.7-Flash`.
+  `deepseek-ai/DeepSeek-V4.1-Flash` as accessible to specific grants only
+  (`plgccbmc15`, `plgtraining2026` at the time of writing) and it carries a
+  non-commercial flag. If every request fails with *"not available for grant 'N'"*,
+  change `model` and the `architect`/`researcher` pins to
+  `plgrid/Qwen/Qwen3.6-35B-A3B`, which is open to all grants.
+- **Several models are flagged non-commercial** by the gateway (`GLM-5.2-FP8`,
+  `Qwen3.6-27B`, `gemma-4-31B`, `DeepSeek-V4.1-Flash`, `DeepSeek-V4-Flash-0731`,
+  `PLLuM-12B`). Irrelevant for academic and research use, which is what PLGrid grants
+  are for. It only matters if you have a commercial affiliation — then substitute
+  `Qwen3.6-35B-A3B` or `Qwen3-Coder-30B-A3B`.
 - **The model list is a snapshot.** PLGrid adds and retires models. Re-check with:
   ```bash
   curl -H "Authorization: Bearer $KEY" \
@@ -220,9 +233,9 @@ intuition that the big model should do the work:
 > implementation… The small cheap models are actually great (and fast) at generating
 > decent code if they have the right direction up front."*
 
-So: GLM-5.2 plans (`architect`) and investigates (`researcher`), Qwen3.6-27B reviews
-at temperature 0.1, GLM-4.7-Flash does the mechanical edits in ~5s. The
-`architect` **cannot edit files at all** — it must delegate, which stops a mid-tier
+So: DeepSeek-V4.1-Flash plans (`architect`) and investigates (`researcher`),
+Qwen3.6-27B reviews at temperature 0.1, Qwen3.6-35B-A3B does the mechanical edits.
+The `architect` **cannot edit files at all** — it must delegate, which stops a mid-tier
 planner making a mess directly.
 
 Note the built-in `plan` agent cannot do this: it has `task: { general: "deny" }`

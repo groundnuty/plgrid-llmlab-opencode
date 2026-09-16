@@ -24,11 +24,10 @@
 //                     input + max_tokens <= context
 //
 // Two caveats:
-//   * Models reachable only through a grant other than the default one are
-//     tagged "(grant access required)". They list as accessible in
-//     /v1/models-plgrid-format but the gateway currently routes requests
-//     through a single grant, so they may answer 400 until the key is
-//     pointed at the right grant.
+//   * Some models are reachable only through a grant other than the default
+//     one. They list as accessible in /v1/models-plgrid-format but the gateway
+//     currently routes requests through a single grant, so they may answer 400
+//     until the key is pointed at the right grant.
 //   * For those same models the reasoning/limit fields could not be probed
 //     from this account, so they are left at opencode's defaults rather
 //     than filled in with a guess.
@@ -61,7 +60,7 @@ const MODELS = {
     }
   },
   "deepseek-ai/DeepSeek-V4-Flash-0731": {
-    "name": "DeepSeek V4 Flash 0731 (non-commercial, grant access required)",
+    "name": "DeepSeek V4 Flash 0731 (non-commercial)",
     "tool_call": false
   },
   "Qwen/Qwen3.6-27B": {
@@ -89,15 +88,15 @@ const MODELS = {
     }
   },
   "Qwen/Qwen3.8-27B": {
-    "name": "Qwen3.8 27B (grant access required)",
+    "name": "Qwen3.8 27B",
     "tool_call": true
   },
   "Qwen/Qwen3.5-397B-A17B-FP8": {
-    "name": "Qwen3.5 397B A17B FP8 (grant access required)",
+    "name": "Qwen3.5 397B A17B FP8",
     "tool_call": true
   },
   "Qwen/Qwen3.5-122B-A10B": {
-    "name": "Qwen3.5 122B A10B (grant access required)",
+    "name": "Qwen3.5 122B A10B",
     "tool_call": true
   },
   "Qwen/Qwen3-Coder-30B-A3B-Instruct": {
