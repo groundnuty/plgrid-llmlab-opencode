@@ -153,6 +153,20 @@ If you want planner-delegates-to-implementer, define your own primary agent with
 `task` allowed and write tools denied — the `architect` agent in this repo's
 `opencode.json`.
 
+### Headless runs never answer a subagent's permission prompt
+
+`opencode run --auto` approves permission prompts from the primary agent, but not
+from a subagent it delegates to. The subagent's tool call stays `running`, and the run
+hangs until something kills it. Reproduced with `architect` delegating one shell
+command to `general`: an allow-listed `ls -la` finished in 17 s; `echo hi`, which falls
+through to `ask`, hung for the full 240 s timeout.
+
+Every non-allow-listed command is a potential hang in a scripted run that delegates —
+including the harmless ones agents reach for in pipelines (`| tail -20`, `echo`,
+`head`). This repo's `opencode.json` allow-lists those read-only tools, which turned
+the same delegation into an 11 s run. For fully scripted runs, allow `bash` outright
+and keep only the destructive commands denied, as the benchmark config does.
+
 ### The TUI is not a reliable audit trail for delegation
 
 A subagent invocation can complete without a visible marker in the TUI while the

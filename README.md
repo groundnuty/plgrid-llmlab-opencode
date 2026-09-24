@@ -202,6 +202,11 @@ Nothing here is sacred. Common changes:
   on who asks.
 - **`opencode run` occasionally exits 0 having done nothing.** Harmless interactively.
   If you script it, assert on the expected artifact, not the exit code.
+- **Scripted runs hang when a subagent needs permission.** `opencode run --auto`
+  approves prompts from the primary agent only; a subagent's prompt is never answered.
+  Common read-only tools are allow-listed here for that reason. If you script the
+  `architect` and extend what its subagents do, allow those commands too
+  ([details](research/pitfalls.md)).
 - **Several models are flagged non-commercial** by the gateway (`DeepSeek-V4.1-Flash`,
   `GLM-5.2-FP8`, `GLM-5.3-Flash`, `Qwen3.6-27B`, `gemma-4-31B`, `PLLuM-12B`).
   Irrelevant for academic and research use, which is what PLGrid grants are for. It
