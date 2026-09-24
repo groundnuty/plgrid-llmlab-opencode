@@ -51,6 +51,18 @@ const MODELS = {
       "output": 32768
     }
   },
+  "zai-org/GLM-5.3-Flash": {
+    "name": "GLM-5.3 Flash (non-commercial)",
+    "tool_call": true,
+    "reasoning": true,
+    "interleaved": {
+      "field": "reasoning"
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 32768
+    }
+  },
   "deepseek-ai/DeepSeek-V4.1-Flash": {
     "name": "DeepSeek V4.1 Flash (non-commercial)",
     "tool_call": true,
@@ -63,9 +75,21 @@ const MODELS = {
       "output": 32768
     }
   },
+  "deepseek-ai/DeepSeek-V4-Flash": {
+    "name": "DeepSeek V4 Flash",
+    "tool_call": true,
+    "limit": {
+      "context": 700000,
+      "output": 32768
+    }
+  },
   "deepseek-ai/DeepSeek-V4-Flash-0731": {
     "name": "DeepSeek V4 Flash 0731 (non-commercial)",
-    "tool_call": false
+    "tool_call": true,
+    "limit": {
+      "context": 700000,
+      "output": 32768
+    }
   },
   "Qwen/Qwen3.6-27B": {
     "name": "Qwen3.6 27B (non-commercial)",
@@ -93,7 +117,15 @@ const MODELS = {
   },
   "Qwen/Qwen3.8-27B": {
     "name": "Qwen3.8 27B",
-    "tool_call": true
+    "tool_call": true,
+    "reasoning": true,
+    "interleaved": {
+      "field": "reasoning"
+    },
+    "limit": {
+      "context": 262144,
+      "output": 32768
+    }
   },
   "Qwen/Qwen3.5-397B-A17B-FP8": {
     "name": "Qwen3.5 397B A17B FP8",
@@ -178,16 +210,32 @@ const MODELS = {
   }
 }
 
+// Merge a user's per-model overrides onto the defaults one model at a time, so
+// overriding one model's limit keeps the other models (and that model's other fields).
+const mergeModels = (defaults, overrides) => {
+  const merged = { ...defaults }
+  for (const [id, override] of Object.entries(overrides)) {
+    const base = defaults[id] ?? {}
+    merged[id] = { ...base, ...override }
+    if (base.limit || override.limit) merged[id].limit = { ...base.limit, ...override.limit }
+  }
+  return merged
+}
+
 export const PLGridForge = async () => ({
   config: async (config) => {
     config.provider = config.provider ?? {}
+    const user = config.provider.plgrid ?? {}
+    // Anything the user sets in opencode.json wins over the defaults above. `options`
+    // and `models` are merged rather than replaced: a shallow spread would drop
+    // baseURL when a user sets any option, and every other model when they
+    // override one.
     config.provider.plgrid = {
       npm: "@ai-sdk/openai-compatible",
       name: "PLGrid Forge (Cyfronet)",
-      options: { baseURL: BASE_URL },
-      models: MODELS,
-      // anything the user sets in opencode.json wins over the defaults above
-      ...(config.provider.plgrid ?? {}),
+      ...user,
+      options: { baseURL: BASE_URL, ...(user.options ?? {}) },
+      models: mergeModels(MODELS, user.models ?? {}),
     }
   },
 
