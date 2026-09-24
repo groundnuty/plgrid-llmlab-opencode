@@ -141,28 +141,49 @@ curl -sH "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{
 
 A model without a tool-call parser returns HTTP 400 mentioning
 `--enable-auto-tool-choice`. **A 200 response is not proof of usable tool calling** —
-check that `choices[0].message.tool_calls` is actually populated. This probe alone
-gave a false positive on `QwQ-32B`; the gateway's `function_calling_supported` field
-is the reliable answer.
+check that `choices[0].message.tool_calls` is actually populated. The gateway's
+`function_calling_supported` field is the right default, but it can lag the
+deployment: `QwQ-32B` is listed without function calling and still returns structured
+`tool_calls`. When the field and a populated `tool_calls` disagree, trust the
+response.
 
 ## Reasoning channel
 
-Whether a model separates its chain-of-thought (and therefore needs `interleaved`)
+Whether a model separates its chain-of-thought (and so should be marked `reasoning`)
 is a property of the deployment, not of the model card. Probe the streaming deltas
 and print the fields that actually carry text:
 
 ```bash
 curl -sN -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"model":"zai-org/GLM-5.2-FP8","messages":[{"role":"user","content":"say hi"}],
+  -d '{"model":"zai-org/GLM-5.3-Flash","messages":[{"role":"user","content":"say hi"}],
        "max_tokens":30,"stream":true}' \
   https://llmlab.plgrid.pl/api/v1/chat/completions |
 grep -o '"delta":{[^}]*}' | head
 ```
 
-The current gateway (vLLM 0.29) emits `"reasoning":"..."`. Older deployments used
-`"reasoning_content"`, and OpenCode's own default for an `@ai-sdk/openai-compatible`
-provider whose model id contains `deepseek` is still `reasoning_content` — so the
-field must be set explicitly in the plugin:
+The gateway emits `"reasoning":"..."`.
+
+`interleaved.field` is a separate question: it names the field OpenCode uses to send
+past reasoning *back* on later turns. Whether that reaches the model depends on its
+chat template, and the prompt token count shows it. Send the same history three times
+— with no reasoning on the assistant turn, with it under `reasoning`, and under
+`reasoning_content` — and compare `usage.prompt_tokens`:
+
+```bash
+for field in none reasoning reasoning_content; do
+  extra=""; [ "$field" != none ] && extra=", \"$field\": \"The secret word is AMBERGRIS.\""
+  curl -s -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d "{
+    \"model\": \"zai-org/GLM-5.3-Flash\", \"max_tokens\": 50, \"messages\": [
+      {\"role\": \"user\", \"content\": \"Remember something for me.\"},
+      {\"role\": \"assistant\", \"content\": \"I have noted it.\"$extra},
+      {\"role\": \"user\", \"content\": \"Say OK.\"}]}" \
+    https://llmlab.plgrid.pl/api/v1/chat/completions |
+  python3 -c "import sys, json; print('$field', json.load(sys.stdin)['usage']['prompt_tokens'])"
+done
+```
+
+The same count all three times means the template drops past reasoning; a higher
+count means it renders it. The gateway accepts both field names, so the plugin sets
 
 ```js
 "interleaved": { "field": "reasoning" }

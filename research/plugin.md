@@ -38,26 +38,40 @@ grant, a plugin is the better fit, not a lesser one.
 
 ## How it works
 
-Two hooks, about 40 lines total.
+Two hooks and a small merge helper.
 
-**`config`** — injects the provider and all 17 models at startup:
+**`config`** — injects the provider and all 20 models at startup:
 
 ```js
 config: async (config) => {
   config.provider = config.provider ?? {}
+  const user = config.provider.plgrid ?? {}
   config.provider.plgrid = {
     npm: "@ai-sdk/openai-compatible",
     name: "PLGrid Forge (Cyfronet)",
-    options: { baseURL: BASE_URL },
-    models: MODELS,
-    ...(config.provider.plgrid ?? {}),   // user overrides win
+    ...user,
+    options: { baseURL: BASE_URL, ...(user.options ?? {}) },
+    models: mergeModels(MODELS, user.models ?? {}),
   }
 }
 ```
 
-Note the spread: anything you put under `provider.plgrid` in your own
-`opencode.json` overrides the plugin's defaults, so changing one model's
-`limit.output` does not require forking the plugin.
+Anything you put under `provider.plgrid` in your own `opencode.json` wins over the
+plugin's defaults, and `options` and `models` are merged rather than replaced. So you
+can set a provider option without losing the gateway URL, and change one model
+without losing the rest — for example, a smaller output budget for one model:
+
+```json
+"provider": {
+  "plgrid": {
+    "models": { "Qwen/Qwen3.6-27B": { "limit": { "context": 262144, "output": 8192 } } }
+  }
+}
+```
+
+Check what OpenCode resolved with `opencode debug config`: the result should still
+list all 20 models and keep `baseURL` in `options`. (A plain object spread here would
+not — see [pitfalls.md](pitfalls.md).)
 
 **`auth`** — registers the provider with the credential system:
 
@@ -81,39 +95,43 @@ In a directory containing **only** `.opencode/plugins/plgrid.js` — no
 ```
 $ opencode models plgrid
 plgrid/CYFRAGOVPL/Llama-PLLuM-70B-chat-250801
-… all 17 models …
+… all 20 models …
 
 $ opencode providers login -p plgrid
 ◆  Enter your API key
 └  Done                    # auth.json now holds {"plgrid":{"type":"api","key":"plg-…"}}
 
-$ opencode run -m plgrid/zai-org/GLM-5.2-FP8 'Create ok.txt containing exactly: SHIPPED'
+$ opencode run -m plgrid/Qwen/Qwen3.6-27B 'Create ok.txt containing exactly: SHIPPED'
 ←  Write ok.txt
 $ cat ok.txt
 SHIPPED
 ```
 
-Also verified in the interactive TUI: `/models` groups all 15 under
-*"PLGrid Forge (Cyfronet)"* with their display names, the status line reads
-`Build · GLM-5.2 FP8 · PLGrid Forge (Cyfronet)`, and switching model mid-session
-works. It is not a headless-only mechanism.
+Also verified in the interactive TUI: `/models` groups all 20 under
+*"PLGrid Forge (Cyfronet)"* with their display names, the status line names the
+model and the provider, and switching model mid-session works. It is not a
+headless-only mechanism.
 
 ## Model metadata is measured, not guessed
 
 Each entry carries:
 
 - `limit.context` — from the gateway's own `max_model_len` error messages
-- `tool_call` — from the gateway's `function_calling_supported` field
+- `tool_call` — the gateway's `function_calling_supported` field, confirmed by a
+  structured tool call
 - `limit.output` — deliberately well under `context` (see the `limit.output` pitfall
   in [pitfalls.md](pitfalls.md))
-- `interleaved: { field: "reasoning" }` on reasoning models (the field the current
-  gateway actually emits — not `reasoning_content`; see [reproducing.md](reproducing.md))
+- `reasoning` and `interleaved: { field: "reasoning" }` on models that return chain of
+  thought in a `reasoning` field; `interleaved` only names the field OpenCode uses to
+  send past reasoning back (see [pitfalls.md](pitfalls.md))
 - `attachment: true` on the vision model
 
-Unavailable models (`is_active: false`, or no grant in `accessible`) are **omitted**
-rather than listed and labelled; models that are merely grant-gated but otherwise
-accessible are kept, because the failure is then legible as a `not available for
-grant` error.
+**Every active chat model is listed, whichever grant can reach it.** Access is per
+grant, and the catalog's `accessible` field is answered for the caller's account, so
+a list filtered by it would be right for one account and wrong for the rest. A model your
+grant cannot use fails legibly, with the gateway's `not available for grant` error.
+Inactive models are left out. Limits are omitted only for models no grant used to
+build this list could reach, so OpenCode's defaults apply to those.
 
 ## Distributing it
 

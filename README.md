@@ -4,9 +4,8 @@ A working, sane OpenCode setup for the PLGrid Forge models on ACK Cyfronet
 supercomputers. Drop it in, log in once, and you have an agentic coding assistant
 running on Polish academic infrastructure.
 
-Model capabilities and the context limits below were **measured against the live
-gateway**, not copied from model cards. A few grant-restricted models could not be
-probed from this account and are left at OpenCode's defaults rather than guessed.
+Model capabilities, context limits and the benchmark figures below were **measured
+against the live gateway**, not copied from model cards.
 
 **Documentation:**
 
@@ -68,7 +67,7 @@ opencode providers login -p plgrid
 Paste your grant's API key. It is stored in
 `~/.local/share/opencode/auth.json` — **never** in any file in this repo.
 
-Verify that the provider is registered — this should list 17 models:
+Verify that the provider is registered — this should list 20 models:
 
 ```bash
 opencode models plgrid
@@ -82,66 +81,40 @@ opencode
 
 ## What you get
 
-**17 models**, of which **11 support function calling** and **3 passed every hidden
-test case in all six blind benchmark runs**:
+**20 models**, of which **14 support function calling**. On the benchmark fixtures,
+run three times each and scored on hidden cases the model never saw
+([method](research/benchmarks/README.md), [results](research/models.md)), these are
+the ones worth using for agentic work:
 
-tok/s is the generation rate at the gateway for a forced 300-token output (median of 3,
-2026-09-16 12:45, [raw](research/benchmarks/results/throughput-20260916-1245.txt)).
-**It depends heavily on gateway load:** the same measurement at 14:16 that day, under
-load, came out roughly 2–8× lower, with runs of one model ranging from 13 to 60 tok/s
-and up to 8 s before the first token. Read the column as best-case and the ranking as
-approximate.
-
-"Correct" is hidden test cases passed out of 22 — cases the model never saw, run
-*after* it made its own test suite green — in each of the three runs of the final
-benchmark on 2026-09-16, where every run was isolated from the scorer, the repository
-and the other runs ([report](research/benchmarks/results/bench-20260916-141623.txt)).
-An earlier blind round the same day, with a less isolated harness, adds three more
-runs per model; see [research/models.md](research/models.md).
-
-| Model | Context | tok/s | Correct (3 runs) | Use for |
+| Model | Context | Correct (3 runs, /22) | Task s | Use for |
 |---|---|---|---|---|
-| `deepseek-ai/DeepSeek-V4.1-Flash` | 1M | 98 | 22 · 22 · 22 | **default** — fast and verified |
-| `zai-org/GLM-5.2-FP8` | 393k | 65 | 22 · 22 · 22 | hardest measured tasks |
-| `google/gemma-4-31B` | 262k | 38 | 22 · 22 · 22 | `small_model`; simple tasks |
-| `Qwen/Qwen3.6-27B` | 262k | 49 | 22 · 22 · 22 ⚠ | review — but see below |
-| `Qwen/Qwen3.6-35B-A3B` | 262k | **239** | 22 · 22 · 21 ⚠ | fastest; `fastfix` — but see below |
+| `deepseek-ai/DeepSeek-V4.1-Flash` | 1M | 22 · 22 · 22 | 19 / 27 | **default**, `architect`, `researcher`, `fastfix` |
+| `deepseek-ai/DeepSeek-V4-Flash` | 700k | 22 · 22 · 22 | 35 / 31 | alternative without reasoning |
+| `Qwen/Qwen3.6-27B` | 262k | 22 · 22 · 22 | 55 / 59 | `reviewer` — thorough, slow |
+| `google/gemma-4-31B` | 262k | 22 · 22 · 22 | 30 / 42 | `small_model` |
+| `zai-org/GLM-5.3-Flash` | 1M | 22 · 22 · 22 | 23 / 33 | strong alternative default |
+| `Qwen/Qwen3.8-27B` | 262k | 22 · 22 · 22 | 42 / 82 | alternative reviewer |
+| `Qwen/Qwen3.6-35B-A3B` | 262k | 22 · 22 · 22 ⚠ | 17 / 21 | fastest — review its output |
 
-`DeepSeek-V4.1-Flash` is the default in `opencode.json`; like `GLM-5.2-FP8` and
-`gemma-4-31B`, it passed every hidden case in all six blind runs. `GLM-5.2-FP8` is the
-measured fallback.
+"Task s" is the median wall time of one whole agentic run (calc / ledger fixture) —
+what an agent actually waits for. Generation rates are in
+[research/models.md](research/models.md); they depend heavily on gateway load.
 
-⚠ **`Qwen3.6-35B-A3B` is the fastest model, and it produces silently-wrong
-solutions.** In an early trial it made the whole test suite pass while
-`evaluate("2 * 3 * 4")` returned 10 instead of 24 — a green suite over broken code.
-In the earlier blind round it did it again: every spec test green, `2 * 3 * 4` → 6.
-Its other runs were clean apart from missed `isinstance` guards, and from outside the
-two outcomes are indistinguishable without hidden cases. Use it where you review the
-output; do not use it unattended. It is the `fastfix` model, so treat that agent's
-diffs as needing review.
+⚠ **`Qwen3.6-35B-A3B` is the fastest model and open to every grant, but it can be
+silently wrong.** On these fixtures it has produced solutions whose whole test suite
+passed while `evaluate("2 * 3 * 4")` returned `10` — a green suite over broken code,
+indistinguishable from outside without hidden test cases. It was clean in this run;
+the failure is intermittent. Use it where you review the output, not unattended.
 
-⚠ **`Qwen3.6-27B` was perfect in the final runs but not in the earlier round.** There
-it once missed an `isinstance` guard, so `Money(10, "PLN") == 42` raised instead of
-returning `False`, and once wrote a stray `[Tool Result]` after two tool calls and
-ended its turn, so `opencode run` exited 0 with nothing fixed.
+Three tool-capable models are **not safe to use unattended**, and `opencode run` still
+exits 0 when they fail. `Llama-3.3-70B` returns floats where integers are expected (a whole suite
+green, every hidden case wrong) and **rewrites the test file** to fit its code.
+`Bielik-11B-v3.0` scores 0 and **reports passes it never achieved**. `Qwen3-Coder-30B`
+is usually right but sometimes announces a tool call and ends its turn without making
+it, changing nothing.
 
-`Qwen3-Coder-30B-A3B` (21 · 22 · 21, 146 tok/s) is better than its earlier record: its
-only miss was the same `isinstance` guard. The earlier round scored it 14 every time
-because that harness named the working directory `ledger/`, like the package inside
-it, which let misplaced modules pass their own tests; and the original report's 0/22
-came from a single malformed first tool call. Two tool-capable models **fail these
-fixtures**. `Llama-3.3-70B` (3 · 19 · 10) solved `calc` once, but hit the 30-step cap
-in half its runs, left one solution that never returns, and **edited the test file in
-every final `ledger` run** — weakening the tests to fit its own code, twice until they
-all passed; against the original tests it passes 5 of 7. `Bielik-11B-v3.0` also has function calling but
-is treated as chat-only — it scored 0 in every run, loses track of the working
-directory, and **fabricates passing pytest reports**.
-
-The remaining 6 are configured but **cannot use tools** — all 6 lack function
-calling entirely. They remain useful for chat, translation, and Polish-language work.
-Three tool-capable models (`Qwen3.8-27B`, `Qwen3.5-122B-A10B`,
-`Qwen3.5-397B-A17B-FP8`) were not benchmarked because this account's grant cannot
-reach them.
+The remaining 6 models **cannot use tools**. They remain useful for chat, translation
+and Polish-language work.
 
 > **Important:** to use a model without function calling, switch to the `chat`
 > agent first (**Tab** in the TUI, or `--agent chat`). The default `build` and
@@ -156,7 +129,7 @@ reach them.
 | `chat` | primary | any | No tools — for the non-function-calling models |
 | `researcher` | subagent | DeepSeek-V4.1-Flash | Traces code paths, read-only |
 | `reviewer` | subagent | Qwen3.6-27B, t=0.1 | Finds defects, read-only |
-| `fastfix` | subagent | Qwen3.6-35B-A3B | Small mechanical edits — needs review |
+| `fastfix` | subagent | DeepSeek-V4.1-Flash | Small, well-specified mechanical edits |
 
 Invoke subagents with `@researcher`, `@reviewer`, `@fastfix`. Cycle primary agents
 (`architect`, `chat`, and the built-in `build`/`plan`) with **Tab** in the TUI, or
@@ -215,25 +188,26 @@ Nothing here is sacred. Common changes:
 
 ## Known issues
 
-- **Several models are grant-gated.** `Qwen3.5-122B-A10B`, `Qwen3.5-397B-A17B-FP8`,
-  `Qwen3.8-27B` and `DeepSeek-V4-Flash-0731` return *"not available for grant 'N'"*
-  unless your grant covers them; `DeepSeek-V4.1-Flash` and `GLM-5.2-FP8` are
-  restricted to specific grants too, though they answered on the default grant here.
-  Apply via Helpdesk if you need them.
-- **`opencode run` occasionally exits 0 having done nothing** (~3 in 40 runs, cause
-  unidentified). Harmless interactively. If you script it, assert on the expected
-  artifact, not the exit code.
-- **The default model is itself grant-restricted.** The gateway lists
-  `deepseek-ai/DeepSeek-V4.1-Flash` as accessible to specific grants only
-  (`plgccbmc15`, `plgtraining2026` at the time of writing) and it carries a
-  non-commercial flag. If every request fails with *"not available for grant 'N'"*,
-  change `model` and the `architect`/`researcher` pins to
-  `plgrid/Qwen/Qwen3.6-35B-A3B`, which is open to all grants.
-- **Several models are flagged non-commercial** by the gateway (`GLM-5.2-FP8`,
-  `Qwen3.6-27B`, `gemma-4-31B`, `DeepSeek-V4.1-Flash`, `DeepSeek-V4-Flash-0731`,
-  `PLLuM-12B`). Irrelevant for academic and research use, which is what PLGrid grants
-  are for. It only matters if you have a commercial affiliation — then substitute
-  `Qwen3.6-35B-A3B` or `Qwen3-Coder-30B-A3B`.
+- **Some models are restricted to some grants.** An API key belongs to one grant, and
+  a model your grant cannot use answers *"not available for grant 'N'"*.
+  `DeepSeek-V4.1-Flash` — the default, and the model for `architect`, `researcher` and
+  `fastfix` — is restricted, as are `DeepSeek-V4-Flash`, `GLM-5.2-FP8`,
+  `GLM-5.3-Flash`, `Qwen3.8-27B` and the `Qwen3.5` models. They include the
+  best-performing models here, which is why the default is one of them: **if your
+  grant cannot use it, ask for access via the PLGrid Helpdesk.** Until then, set `model`,
+  `architect` and `researcher` to `plgrid/Qwen/Qwen3.6-27B` and `fastfix` to
+  `plgrid/google/gemma-4-31B` — both open to all grants and perfect on the benchmark.
+  Check which models your own key can reach with
+  [`research/list_models.py`](research/list_models.md); the catalog's answer depends
+  on who asks.
+- **`opencode run` occasionally exits 0 having done nothing.** Harmless interactively.
+  If you script it, assert on the expected artifact, not the exit code.
+- **Several models are flagged non-commercial** by the gateway (`DeepSeek-V4.1-Flash`,
+  `GLM-5.2-FP8`, `GLM-5.3-Flash`, `Qwen3.6-27B`, `gemma-4-31B`, `PLLuM-12B`).
+  Irrelevant for academic and research use, which is what PLGrid grants are for. It
+  only matters if you have a commercial affiliation.
+- **A model can be listed and not answer.** `GLM-5.2-FP8` is in the catalog as active
+  but timed out on every request when the benchmark was run.
 - **The model list is a snapshot.** PLGrid adds and retires models. To re-check the
   raw catalog, export your key as `LLMLAB_API_KEY` and run:
   ```bash
@@ -249,8 +223,8 @@ Nothing here is sacred. Common changes:
 
 ## Honest expectations
 
-These are open-weight models, not frontier ones. `GLM-5.2` and `Qwen3.6-27B` are
-roughly Sonnet-class on a good day; the rest are below that. For well-specified
+These are open-weight models, not frontier ones. The best of them are roughly
+Sonnet-class on a good day; the rest are below that. For well-specified
 single-file work they are genuinely good and fast. For multi-file refactors with
 ambiguous requirements, expect a real gap versus Claude or GPT.
 
@@ -289,17 +263,23 @@ Useful for the 200k+ models here, irrelevant at 32k.
 
 ## Why the agents are split the way they are
 
-The topology follows the pattern experienced practitioners report, which inverts the
-intuition that the big model should do the work:
+Practitioners report a pattern that inverts the intuition that the big model should
+do all the work:
 
 > *"The big expensive models are great at planning tasks and reviewing the
 > implementation… The small cheap models are actually great (and fast) at generating
 > decent code if they have the right direction up front."*
 
-So: DeepSeek-V4.1-Flash plans (`architect`) and investigates (`researcher`),
-Qwen3.6-27B reviews at temperature 0.1, Qwen3.6-35B-A3B does the mechanical edits.
-The `architect` **cannot edit files at all** — it must delegate, which stops a mid-tier
-planner making a mess directly.
+On PLGrid the models cost research credits rather than money, so here the split is
+about constraints and independence rather than price:
+
+- The `architect` **cannot edit files at all** — it must delegate, which stops a
+  planner making a mess directly.
+- `fastfix` gets a narrow prompt and a 15-step cap; the constraint is the point. It
+  runs on DeepSeek-V4.1-Flash, the same model as the `architect`, because that model
+  had a perfect record and finished tasks fastest.
+- The `reviewer` is deliberately a different model family — Qwen3.6-27B at
+  temperature 0.1 — so a review is not the author checking its own work.
 
 Note the built-in `plan` agent cannot do this: it has `task: { general: "deny" }`
 hardcoded, so it can never hand work to an implementer. That is why `architect`

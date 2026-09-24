@@ -78,10 +78,11 @@ The reason this is documented for agents, not just people:
 
 ## Caveats
 
-- `Accessible` reflects the account/grants as a whole. The gateway still routes
-  requests through a **single default grant**, so a model tagged `Accessible` can
-  still fail with `Model 'X' is not available for grant 'Y'`. See the known issues in
-  [`../README.md`](../README.md).
+- `Accessible` reflects the grants on your account as a whole, while an API key is
+  generated for one grant. So a model tagged `Accessible` through another of your
+  grants still fails with `Model 'X' is not available for grant 'Y'` when called with
+  this key. Two people on different grants also see different tags for the same
+  model. See the known issues in [`../README.md`](../README.md).
 - The script only reads; it makes no writes and has no side effects beyond one HTTP
   request.
 - On missing key or network/HTTP failure it prints a message and exits with status 1,
