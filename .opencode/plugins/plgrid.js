@@ -12,29 +12,24 @@
 // The key is stored in ~/.local/share/opencode/auth.json - no key ever
 // needs to appear in a config file or an environment variable.
 //
-// Model metadata below is derived from the live gateway, not guessed:
-//   tool_call       - PLGrid's function_calling_supported field
+// Model metadata below is measured against the live gateway, not guessed:
+//   tool_call       - the gateway's function_calling_supported field, confirmed
+//                     by a structured tool call
 //   attachment      - vision-language model (Qwen3-VL)
-//   reasoning       - verified by inspecting the streaming/non-streaming
-//                     response: the gateway (vLLM 0.29) exposes chain of
-//                     thought in the message's "reasoning" field
+//   reasoning       - the model returns chain of thought in the message's
+//                     "reasoning" field; interleaved.field is the name OpenCode
+//                     uses to send it back on later turns (the gateway accepts
+//                     both "reasoning" and "reasoning_content")
 //   limit.context   - from the server's own max_model_len error messages
 //   limit.output    - kept well under context; opencode sends this verbatim
 //                     as max_tokens, and the gateway enforces
 //                     input + max_tokens <= context
 //
-// Two caveats:
-//   * Some models are reachable only through a grant other than the default
-//     one. They list as accessible in /v1/models-plgrid-format but the gateway
-//     currently routes requests through a single grant, so they may answer 400
-//     until the key is pointed at the right grant.
-//   * For those same models the reasoning/limit fields could not be probed
-//     from this account, so they are left at opencode's defaults rather
-//     than filled in with a guess.
-//
-// The embedding model (Qwen/Qwen3-Embedding-0.6B) is deliberately absent:
-// this provider exposes chat models to opencode, and an embedding model is
-// not selectable as one.
+// Every active chat model is listed, whichever grant can reach it. Access is per
+// grant, and the catalog's "accessible" field is answered for the caller's account,
+// so this list is not filtered by it: a model your key's grant cannot use answers
+// "not available for grant". The embedding model (Qwen/Qwen3-Embedding-0.6B) is
+// absent because OpenCode cannot use an embedding model as a chat model.
 
 const BASE_URL = "https://llmlab.plgrid.pl/api/v1"
 
@@ -207,6 +202,10 @@ const MODELS = {
       "context": 131072,
       "output": 16384
     }
+  },
+  "feyninc/sqrl-9b": {
+    "name": "sqrl 9B",
+    "tool_call": false
   }
 }
 
