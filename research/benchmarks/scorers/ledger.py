@@ -51,7 +51,7 @@ rec("empty_balance_currency", empty, (True, "EUR"))
 def dep_money():
     a=Account("PLN"); a.deposit(Money(5,"PLN")); return a.balance()==Money(5,"PLN")
 rec("deposit_money_same_ccy", dep_money, True)
-print(json.dumps(res))
+print(%r+json.dumps(res))
 '''
 KEYS=["chain_add","mixed_reverse","eq_foreign_type","eq_case","drift_100x",
       "drift_3x_0.7","empty_balance_currency","deposit_money_same_ccy"]
@@ -64,6 +64,13 @@ if "--tsv-file" in args:
     TSV_FILE=args[i+1]; del args[i:i+2]
 TARGETS=[os.path.abspath(d) for d in args]
 if not TARGETS: sys.exit(USAGE)
+SENTINEL="__HIDDEN_RESULT__"
+def parse_result(stdout):
+    """The JSON after the last sentinel line; None if the candidate never got there."""
+    for line in reversed(stdout.splitlines()):
+        if line.startswith(SENTINEL):
+            return json.loads(line[len(SENTINEL):])
+    return None
 def tsv(line):
     if TSV_FILE:
         with open(TSV_FILE,"a") as f: f.write(line+"\n")
@@ -76,14 +83,18 @@ for d in TARGETS:
     try:
         spec=subprocess.run([sys.executable,"-m","pytest","test_ledger.py","-q"],
                             cwd=d,capture_output=True,text=True,timeout=120)
+        # A missing pytest would otherwise read as "0 passed" - a false zero.
+        if "No module named pytest" in spec.stderr:
+            sys.exit("error: python3 cannot import pytest")
         sp=(spec.stdout.strip().splitlines() or [""])[-1][:18]
         m=re.search(r"(\d+) passed",spec.stdout)
         sp_n=f"{int(m.group(1)) if m else 0}/{SPEC_TOTAL}"
     except subprocess.TimeoutExpired:
         sp=sp_n="timeout"
     try:
-        p=subprocess.run([sys.executable,"-c",PROBE%d],capture_output=True,text=True,timeout=120)
-        r=json.loads(p.stdout) if p.returncode==0 else {"__crash__":p.stderr.strip()[-70:]}
+        p=subprocess.run([sys.executable,"-c",PROBE%(d,SENTINEL)],capture_output=True,text=True,timeout=120)
+        r=(parse_result(p.stdout) or {"__crash__":"probes produced no result"}) if p.returncode==0 \
+            else {"__crash__":p.stderr.strip()[-70:]}
     except subprocess.TimeoutExpired:
         r={"__crash__":"probes did not finish in 120s"}
     passed=sum(1 for k in KEYS if r.get(k,["FAIL"])[0]=="PASS")

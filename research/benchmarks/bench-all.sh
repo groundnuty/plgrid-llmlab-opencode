@@ -32,8 +32,9 @@
 #   TMPDIR                 where the isolated working directories are created
 #
 # Requirements: LLMLAB_API_KEY (exported, or in the repo-root .env), the project venv
-# with pytest, git, and opencode with the plgrid provider logged in
-# (opencode providers login -p plgrid).
+# with pytest, git, opencode with the plgrid provider logged in
+# (opencode providers login -p plgrid), bash 4 or newer, and GNU coreutils timeout
+# and md5sum. On macOS: brew install bash coreutils.
 
 set -uo pipefail
 
@@ -85,6 +86,9 @@ fi
 command -v opencode >/dev/null || die "opencode not on PATH"
 command -v git >/dev/null || die "git not on PATH"
 python3 -c 'import pytest' 2>/dev/null || die "python3 cannot import pytest; install it into the project venv"
+(( BASH_VERSINFO[0] >= 4 )) || die "bash $BASH_VERSION is too old; bash 4 or newer is required (macOS: brew install bash)"
+command -v md5sum >/dev/null || die "md5sum not on PATH (macOS: brew install coreutils)"
+timeout --kill-after=1 1 true 2>/dev/null || die "timeout does not support --kill-after; GNU coreutils timeout is required (macOS: brew install coreutils)"
 
 # --- helpers ---------------------------------------------------------------
 emit() { tee -a "$OUT"; }
@@ -154,8 +158,8 @@ REPO_STATE="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)
   echo "================================================================================"
   echo "PLGrid Forge model benchmark"
   echo "run id:             $RUN_ID"
-  echo "started:            $(date -Is)"
-  echo "host:               $(hostname)"
+  echo "started:            $(date -Iseconds)"
+  echo "platform:           $(uname -sm)"
   echo "repo:               $REPO_STATE"
   echo "opencode:           $(opencode --version 2>/dev/null)"
   echo "mode:               $MODE"
@@ -180,12 +184,28 @@ run_throughput() {
 # --- correctness -----------------------------------------------------------
 CURRENT_SANDBOX=""
 CURRENT_CHILD=""
-on_exit() {
+archive_interrupted() {
   [[ -n "$CURRENT_SANDBOX" && -d "$CURRENT_SANDBOX" ]] || return 0
   mkdir -p "$ARCHIVE/interrupted" && cp -r "$CURRENT_SANDBOX"/. "$ARCHIVE/interrupted/" \
     && rm -rf "$CURRENT_SANDBOX" \
     && echo "note: the unfinished run was moved to ${ARCHIVE#"$ROOT"/}/interrupted/" >&2 \
     || echo "warning: could not archive the unfinished run in $CURRENT_SANDBOX" >&2
+}
+# The report and table are meant to be committed, so they must not carry local
+# paths or grant ids. Literal replacement, longest path first, so a temp dir inside
+# $HOME is replaced before $HOME itself. The archive under bench-run/ keeps the
+# unredacted logs for local debugging.
+redact_outputs() {
+  local f
+  for f in "$OUT" "$TSV"; do
+    [[ -f "$f" ]] || continue
+    python3 "$BENCH/redact.py" "$f" "${TMPDIR:-/tmp}" "$ROOT" "$HOME" \
+      || echo "warning: could not redact $f" >&2
+  done
+}
+on_exit() {
+  archive_interrupted
+  redact_outputs
 }
 # timeout runs OpenCode in its own process group, so Ctrl-C never reaches it. The
 # run is therefore waited on in the background, and the signal forwarded by hand.
@@ -351,6 +371,6 @@ case "$MODE" in
 esac
 
 echo "" | emit
-echo "done: $(date -Is)" | emit
+echo "done: $(date -Iseconds)" | emit
 echo "Report written to: $OUT"
 [[ "$MODE" == throughput ]] || echo "Per-run table:     $TSV"
