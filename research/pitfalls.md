@@ -58,6 +58,29 @@ Declaring 131072 for a model the gateway reports as 393216 discards two thirds o
 the window and triggers compaction far earlier than necessary. Get the real number
 from the gateway rather than guessing — see [reproducing.md](reproducing.md).
 
+### A provider plugin must merge overrides, not spread them
+
+A plugin that injects a provider in its `config` hook and then lets the user's
+`provider.<id>` win with a plain object spread replaces nested keys wholesale:
+
+```js
+config.provider.plgrid = { options: { baseURL }, models: MODELS, ...user }   // wrong
+```
+
+Set any provider option — a header, a timeout — and `options` loses `baseURL`.
+Override one model's `limit`, and `models` loses every other model. Merge `options`
+and each model entry separately; the plugin in this repo does.
+
+To see what OpenCode actually resolved, without making a model call:
+
+```bash
+opencode debug config
+```
+
+It prints the merged configuration after plugins have run, so a missing `baseURL` or
+a one-model catalog is visible immediately. Prefer it to testing through
+`opencode run`, which can fail for unrelated reasons (see *Runtime*).
+
 ### Glob keys in the `agent` map are silently ignored
 
 ```jsonc
@@ -130,6 +153,20 @@ If you want planner-delegates-to-implementer, define your own primary agent with
 `task` allowed and write tools denied — the `architect` agent in this repo's
 `opencode.json`.
 
+### Headless runs never answer a subagent's permission prompt
+
+`opencode run --auto` approves permission prompts from the primary agent, but not
+from a subagent it delegates to. The subagent's tool call stays `running`, and the run
+hangs until something kills it. Reproduced with `architect` delegating one shell
+command to `general`: an allow-listed `ls -la` finished in 17 s; `echo hi`, which falls
+through to `ask`, hung for the full 240 s timeout.
+
+Every non-allow-listed command is a potential hang in a scripted run that delegates —
+including the harmless ones agents reach for in pipelines (`| tail -20`, `echo`,
+`head`). This repo's `opencode.json` allow-lists those read-only tools, which turned
+the same delegation into an 11 s run. For fully scripted runs, allow `bash` outright
+and keep only the destructive commands denied, as the benchmark config does.
+
 ### The TUI is not a reliable audit trail for delegation
 
 A subagent invocation can complete without a visible marker in the TUI while the
@@ -146,13 +183,10 @@ opencode export <session-id>     # look for tool: "task" and its subagent_type
 
 ### `opencode run` occasionally exits 0 having done nothing
 
-Observed roughly 4 times in ~45 headless runs: the command returns success with no
-output and no file change; an immediate re-run of the identical command works.
-
-Attempts to reproduce it deliberately — fresh directory with a minimal config, fresh
-directory with a full config, multi-step prompt — all succeeded first time, so the
-trigger is unidentified. A race in first-run initialisation is plausible but
-unproven.
+Now and then the command returns success with no output and no file change, or stalls
+during startup — most often in a directory it has not run in before. Re-running the
+identical command usually works. It does not reproduce on demand, and the trigger is
+unidentified; a race in first-run initialisation is plausible but unproven.
 
 **Because the exit code is 0, nothing signals failure.** For interactive use this is
 a non-issue. If you script `opencode run` in CI, assert on the expected artifact
@@ -206,18 +240,50 @@ before it does anything. A 32k-context model can never reach that. It is useful 
 
 ---
 
+## Gateway
+
+### `accessible` is answered for your account, and a key is one grant
+
+`/api/v1/models-plgrid-format` returns an `accessible` list per model, but the list
+is the set of *your* grants that can reach the model — two users on different grants
+get different answers for the same model. And an API key is generated for a single
+grant, so a model accessible through another of your grants still answers
+`"not available for grant"` to this key. A shared config filtered by `accessible` is
+right for one account and wrong for everyone else. The plugin in this repo therefore lists
+every active chat model, and a model your grant cannot use answers
+`"not available for grant"`.
+
+### The catalog can lag the deployment
+
+The catalog's flags are the right default, not ground truth. `Qwen/QwQ-32B` is listed
+with `function_calling_supported: false`, yet returns structured `tool_calls`
+consistently, streaming and not. And a model can be listed `is_active: true` while its
+requests time out. When a flag and the model's behaviour disagree, the behaviour
+wins: send a request with a tool and check whether `choices[0].message.tool_calls`
+is populated ([reproducing.md](reproducing.md)).
+
 ## Model-side behaviour
 
-### Reasoning models need `interleaved`
+### `interleaved` controls how reasoning is replayed, not whether you see it
 
-GLM and Qwen reasoning models stream chain-of-thought in a separate
-`reasoning_content` delta field. Without
+Reasoning models on the gateway return their chain of thought in a separate
+`reasoning` field (streamed as a `reasoning` delta), and OpenCode shows it as a
+reasoning part either way. `interleaved.field` does something else: on later turns,
+OpenCode strips the reasoning out of past assistant messages and sends it back on each
+message under that field name (`provider/transform.ts`).
+
+The gateway accepts both `reasoning` and `reasoning_content` there. Whether the model
+then sees its past reasoning depends on its chat template: `DeepSeek-V4.1-Flash` and
+`Qwen3.6-27B` drop it under either name (the prompt token count is the same with and
+without it), while `GLM-5.3-Flash` includes it under either name. So
 
 ```json
-"interleaved": { "field": "reasoning_content" }
+"interleaved": { "field": "reasoning" }
 ```
 
-the thinking either vanishes or leaks into the answer as raw `<think>` text.
+is harmless on every reasoning model here and keeps past reasoning available to the
+models whose template uses it. Leaving it out does not make the thinking vanish or
+leak into the answer.
 
 Caveat from OpenCode's source: `provider/transform.ts` **skips** interleaved
 handling entirely when the provider package is `@openrouter/ai-sdk-provider`. With

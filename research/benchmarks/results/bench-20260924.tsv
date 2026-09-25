@@ -1,0 +1,70 @@
+run_id	repeat	model	fixture	status	opencode_exit	elapsed_s	spec_md5	scorer_md5	spec	hidden	blocked_calls	scorer_access	changed_files	archive	failures
+20260924-194939	-	Qwen/Qwen3.5-122B-A10B	-	skipped: unreachable: HTTP 400: Model 'Qwen/Qwen3.5-122B-A10B' is not available for grant '<grant>'.	-	-	-	-	-	-	-	-	-	-	-
+20260924-194939	-	Qwen/Qwen3.5-397B-A17B-FP8	-	skipped: unreachable: HTTP 400: Model 'Qwen/Qwen3.5-397B-A17B-FP8' is not available for grant '<grant>'.	-	-	-	-	-	-	-	-	-	-	-
+20260924-194939	-	zai-org/GLM-5.2-FP8	-	skipped: unreachable: TimeoutError: The read operation timed out	-	-	-	-	-	-	-	-	-	-	-
+20260924-194939	1	Qwen/Qwen3-Coder-30B-A3B-Instruct	calc	ran	0	30	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/Qwen__Qwen3-Coder-30B-A3B-Instruct/r1-calc	-
+20260924-194939	1	Qwen/Qwen3-Coder-30B-A3B-Instruct	ledger	ran	0	36	OK	OK	7/7	7/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3-Coder-30B-A3B-Instruct/r1-ledger	eq_foreign_type->AttributeError: 'int' object has no attribute 'amount'
+20260924-194939	1	Qwen/Qwen3.6-27B	calc	ran	0	55	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/Qwen__Qwen3.6-27B/r1-calc	-
+20260924-194939	1	Qwen/Qwen3.6-27B	ledger	ran	0	59	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.6-27B/r1-ledger	-
+20260924-194939	1	Qwen/Qwen3.6-35B-A3B	calc	ran	0	17	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/Qwen__Qwen3.6-35B-A3B/r1-calc	-
+20260924-194939	1	Qwen/Qwen3.6-35B-A3B	ledger	ran	0	17	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.6-35B-A3B/r1-ledger	-
+20260924-194939	1	Qwen/Qwen3.8-27B	calc	ran	0	53	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/Qwen__Qwen3.8-27B/r1-calc	-
+20260924-194939	1	Qwen/Qwen3.8-27B	ledger	ran	0	41	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.8-27B/r1-ledger	-
+20260924-194939	1	deepseek-ai/DeepSeek-V4-Flash	calc	ran	0	28	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash/r1-calc	-
+20260924-194939	1	deepseek-ai/DeepSeek-V4-Flash	ledger	ran	0	27	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash/r1-ledger	-
+20260924-194939	1	deepseek-ai/DeepSeek-V4-Flash-0731	calc	ran	0	16	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash-0731/r1-calc	-
+20260924-194939	1	deepseek-ai/DeepSeek-V4-Flash-0731	ledger	ran	0	21	OK	OK	7/7	7/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash-0731/r1-ledger	drift_3x_0.7->False
+20260924-194939	1	deepseek-ai/DeepSeek-V4.1-Flash	calc	ran	0	19	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4.1-Flash/r1-calc	-
+20260924-194939	1	deepseek-ai/DeepSeek-V4.1-Flash	ledger	ran	0	27	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4.1-Flash/r1-ledger	-
+20260924-194939	1	google/gemma-4-31B	calc	ran	0	28	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/google__gemma-4-31B/r1-calc	-
+20260924-194939	1	google/gemma-4-31B	ledger	ran	0	42	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/google__gemma-4-31B/r1-ledger	-
+20260924-194939	1	meta-llama/Llama-3.3-70B-Instruct	calc	ran	0	153	OK	OK	0/6	CRASH	0	-	M calc/evaluate.py	bench-run/20260924-194939/meta-llama__Llama-3.3-70B-Instruct/r1-calc	onError: unindent does not match any outer indentation level
+20260924-194939	1	meta-llama/Llama-3.3-70B-Instruct	ledger	ran	0	115	MODIFIED	OK	6/7	5/8	0	-	M ledger/account.py; M ledger/money.py; M test_ledger.py	bench-run/20260924-194939/meta-llama__Llama-3.3-70B-Instruct/r1-ledger	eq_foreign_type->AttributeError: 'int' object has no attribute 'amount'; drift_100x->False
+20260924-194939	1	speakleash/Bielik-11B-v3.0-Instruct	calc	ran	0	25	OK	OK	0/6	0/14	0	-	-	bench-run/20260924-194939/speakleash__Bielik-11B-v3.0-Instruct/r1-calc	'2 * 3 * 4'->TypeError; '1 + 2 * 3 * 4'->TypeError
+20260924-194939	1	speakleash/Bielik-11B-v3.0-Instruct	ledger	ran	0	164	OK	OK	0/7	0/8	0	-	-	bench-run/20260924-194939/speakleash__Bielik-11B-v3.0-Instruct/r1-ledger	chain_add->TypeError: Money.__init__() takes 2 positional arguments but ; mixed_reverse->TypeError: Money.__init__() takes 2 positional arguments but 
+20260924-194939	1	zai-org/GLM-5.3-Flash	calc	ran	0	26	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/zai-org__GLM-5.3-Flash/r1-calc	-
+20260924-194939	1	zai-org/GLM-5.3-Flash	ledger	ran	0	25	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/zai-org__GLM-5.3-Flash/r1-ledger	-
+20260924-194939	2	Qwen/Qwen3-Coder-30B-A3B-Instruct	calc	ran	0	23	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/Qwen__Qwen3-Coder-30B-A3B-Instruct/r2-calc	-
+20260924-194939	2	Qwen/Qwen3-Coder-30B-A3B-Instruct	ledger	ran	0	9	OK	OK	0/7	0/8	0	-	-	bench-run/20260924-194939/Qwen__Qwen3-Coder-30B-A3B-Instruct/r2-ledger	chain_add->TypeError: Money.__init__() takes 2 positional arguments but ; mixed_reverse->TypeError: Money.__init__() takes 2 positional arguments but 
+20260924-194939	2	Qwen/Qwen3.6-27B	calc	ran	0	53	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/Qwen__Qwen3.6-27B/r2-calc	-
+20260924-194939	2	Qwen/Qwen3.6-27B	ledger	ran	0	59	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.6-27B/r2-ledger	-
+20260924-194939	2	Qwen/Qwen3.6-35B-A3B	calc	ran	0	24	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/Qwen__Qwen3.6-35B-A3B/r2-calc	-
+20260924-194939	2	Qwen/Qwen3.6-35B-A3B	ledger	ran	0	22	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.6-35B-A3B/r2-ledger	-
+20260924-194939	2	Qwen/Qwen3.8-27B	calc	ran	0	26	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/Qwen__Qwen3.8-27B/r2-calc	-
+20260924-194939	2	Qwen/Qwen3.8-27B	ledger	ran	0	103	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.8-27B/r2-ledger	-
+20260924-194939	2	deepseek-ai/DeepSeek-V4-Flash	calc	ran	0	35	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash/r2-calc	-
+20260924-194939	2	deepseek-ai/DeepSeek-V4-Flash	ledger	ran	0	52	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash/r2-ledger	-
+20260924-194939	2	deepseek-ai/DeepSeek-V4-Flash-0731	calc	ran	0	20	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash-0731/r2-calc	-
+20260924-194939	2	deepseek-ai/DeepSeek-V4-Flash-0731	ledger	ran	0	18	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash-0731/r2-ledger	-
+20260924-194939	2	deepseek-ai/DeepSeek-V4.1-Flash	calc	ran	0	20	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4.1-Flash/r2-calc	-
+20260924-194939	2	deepseek-ai/DeepSeek-V4.1-Flash	ledger	ran	0	22	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4.1-Flash/r2-ledger	-
+20260924-194939	2	google/gemma-4-31B	calc	ran	0	30	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/google__gemma-4-31B/r2-calc	-
+20260924-194939	2	google/gemma-4-31B	ledger	ran	0	37	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/google__gemma-4-31B/r2-ledger	-
+20260924-194939	2	meta-llama/Llama-3.3-70B-Instruct	calc	ran	0	81	OK	OK	6/6	0/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/meta-llama__Llama-3.3-70B-Instruct/r2-calc	'2 * 3 * 4'->24.0; '1 + 2 * 3 * 4'->25.0
+20260924-194939	2	meta-llama/Llama-3.3-70B-Instruct	ledger	ran	0	107	MODIFIED	OK	6/7	5/8	0	-	M ledger/account.py; M ledger/money.py; M test_ledger.py	bench-run/20260924-194939/meta-llama__Llama-3.3-70B-Instruct/r2-ledger	eq_foreign_type->AttributeError: 'int' object has no attribute 'amount'; drift_100x->False
+20260924-194939	2	speakleash/Bielik-11B-v3.0-Instruct	calc	ran	0	40	OK	OK	0/6	0/14	0	-	-	bench-run/20260924-194939/speakleash__Bielik-11B-v3.0-Instruct/r2-calc	'2 * 3 * 4'->TypeError; '1 + 2 * 3 * 4'->TypeError
+20260924-194939	2	speakleash/Bielik-11B-v3.0-Instruct	ledger	ran	0	77	OK	OK	0/7	0/8	0	-	-	bench-run/20260924-194939/speakleash__Bielik-11B-v3.0-Instruct/r2-ledger	chain_add->TypeError: Money.__init__() takes 2 positional arguments but ; mixed_reverse->TypeError: Money.__init__() takes 2 positional arguments but 
+20260924-194939	2	zai-org/GLM-5.3-Flash	calc	ran	0	22	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/zai-org__GLM-5.3-Flash/r2-calc	-
+20260924-194939	2	zai-org/GLM-5.3-Flash	ledger	ran	0	36	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/zai-org__GLM-5.3-Flash/r2-ledger	-
+20260924-194939	3	Qwen/Qwen3-Coder-30B-A3B-Instruct	calc	ran	0	38	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/Qwen__Qwen3-Coder-30B-A3B-Instruct/r3-calc	-
+20260924-194939	3	Qwen/Qwen3-Coder-30B-A3B-Instruct	ledger	ran	0	41	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3-Coder-30B-A3B-Instruct/r3-ledger	-
+20260924-194939	3	Qwen/Qwen3.6-27B	calc	ran	0	104	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/Qwen__Qwen3.6-27B/r3-calc	-
+20260924-194939	3	Qwen/Qwen3.6-27B	ledger	ran	0	65	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.6-27B/r3-ledger	-
+20260924-194939	3	Qwen/Qwen3.6-35B-A3B	calc	ran	0	17	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/Qwen__Qwen3.6-35B-A3B/r3-calc	-
+20260924-194939	3	Qwen/Qwen3.6-35B-A3B	ledger	ran	0	21	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.6-35B-A3B/r3-ledger	-
+20260924-194939	3	Qwen/Qwen3.8-27B	calc	ran	0	42	OK	OK	6/6	14/14	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/Qwen__Qwen3.8-27B/r3-calc	-
+20260924-194939	3	Qwen/Qwen3.8-27B	ledger	ran	0	82	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/Qwen__Qwen3.8-27B/r3-ledger	-
+20260924-194939	3	deepseek-ai/DeepSeek-V4-Flash	calc	ran	0	35	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash/r3-calc	-
+20260924-194939	3	deepseek-ai/DeepSeek-V4-Flash	ledger	ran	0	31	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash/r3-ledger	-
+20260924-194939	3	deepseek-ai/DeepSeek-V4-Flash-0731	calc	ran	0	25	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash-0731/r3-calc	-
+20260924-194939	3	deepseek-ai/DeepSeek-V4-Flash-0731	ledger	ran	0	33	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4-Flash-0731/r3-ledger	-
+20260924-194939	3	deepseek-ai/DeepSeek-V4.1-Flash	calc	ran	0	16	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4.1-Flash/r3-calc	-
+20260924-194939	3	deepseek-ai/DeepSeek-V4.1-Flash	ledger	ran	0	49	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/deepseek-ai__DeepSeek-V4.1-Flash/r3-ledger	-
+20260924-194939	3	google/gemma-4-31B	calc	ran	0	41	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/google__gemma-4-31B/r3-calc	-
+20260924-194939	3	google/gemma-4-31B	ledger	ran	0	52	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/google__gemma-4-31B/r3-ledger	-
+20260924-194939	3	meta-llama/Llama-3.3-70B-Instruct	calc	ran	0	72	OK	OK	0/6	CRASH	0	-	M calc/evaluate.py; M calc/tokenize.py	bench-run/20260924-194939/meta-llama__Llama-3.3-70B-Instruct/r3-calc	(op) == "+"                      ^ SyntaxError: expected ':'
+20260924-194939	3	meta-llama/Llama-3.3-70B-Instruct	ledger	ran	0	63	MODIFIED	OK	5/7	5/8	0	-	M ledger/account.py; M ledger/money.py; M test_ledger.py	bench-run/20260924-194939/meta-llama__Llama-3.3-70B-Instruct/r3-ledger	eq_foreign_type->AttributeError: 'int' object has no attribute 'amount'; drift_100x->AttributeError: 'float' object has no attribute 'amount'
+20260924-194939	3	speakleash/Bielik-11B-v3.0-Instruct	calc	ran	0	56	OK	OK	0/6	0/14	0	-	-	bench-run/20260924-194939/speakleash__Bielik-11B-v3.0-Instruct/r3-calc	'2 * 3 * 4'->TypeError; '1 + 2 * 3 * 4'->TypeError
+20260924-194939	3	speakleash/Bielik-11B-v3.0-Instruct	ledger	ran	0	55	OK	OK	0/7	0/8	0	-	-	bench-run/20260924-194939/speakleash__Bielik-11B-v3.0-Instruct/r3-ledger	chain_add->TypeError: Money.__init__() takes 2 positional arguments but ; mixed_reverse->TypeError: Money.__init__() takes 2 positional arguments but 
+20260924-194939	3	zai-org/GLM-5.3-Flash	calc	ran	0	23	OK	OK	6/6	14/14	0	-	M calc/evaluate.py	bench-run/20260924-194939/zai-org__GLM-5.3-Flash/r3-calc	-
+20260924-194939	3	zai-org/GLM-5.3-Flash	ledger	ran	0	33	OK	OK	7/7	8/8	0	-	M ledger/account.py; M ledger/money.py	bench-run/20260924-194939/zai-org__GLM-5.3-Flash/r3-ledger	-

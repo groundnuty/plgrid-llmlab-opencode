@@ -40,60 +40,91 @@ the PLGrid-format endpoint instead.
 
 ## Real context limit
 
-Ask for an absurd `max_tokens` and read the limit out of the error:
+The server refuses an output budget larger than the model's window, and the refusal
+names the window. Send an impossible `max_tokens` and read the number out of the
+error:
 
 ```bash
 curl -sH "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"model":"Qwen/Qwen3.6-27B","messages":[{"role":"user","content":"hi"}],
-       "max_tokens":100000000}' \
+       "max_tokens":2000000000}' \
   https://llmlab.plgrid.pl/api/v1/chat/completions
 ```
 
-The response names either `maximum context length is N` or
-`max_model_len=max_total_tokens=N`. This is how every `limit.context` in
-`opencode.json` was derived — do not trust model cards, which frequently disagree
-with what the deployment actually serves.
+The response names either `max_model_len=max_total_tokens=N` (current deployments)
+or `maximum context length is N tokens` (older ones). Both are the *whole* window —
+input plus output — not the usable output budget.
+
+Use a value that cannot be a real context, with a trivially short prompt. If
+`max_tokens` lands *inside* the window the request is not rejected: it runs and can
+bill you for generating that many tokens. `100000000` was enough for every model
+here, but `2000000000` removes the risk that some future deployment has a window
+larger than the probe.
+
+Loop the whole catalog and print a table (handles both error phrasings):
+
+```bash
+curl -sH "Authorization: Bearer $KEY" \
+  https://llmlab.plgrid.pl/api/v1/models-plgrid-format |
+python3 -c '
+import sys, json, re, urllib.request, urllib.error
+K = open("/Users/you/.config/opencode/plgrid.key").read().strip()
+URL = "https://llmlab.plgrid.pl/api/v1/chat/completions"
+for m in json.load(sys.stdin):
+    body = json.dumps({"model": m["model_name"], "max_tokens": 2000000000,
+                       "messages": [{"role": "user", "content": "hi"}]}).encode()
+    req = urllib.request.Request(URL, data=body,
+        headers={"Authorization": f"Bearer {K}", "Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(req, timeout=120)
+        print(f"{m[\"model_name\"]:44} no error (check manually)")
+    except urllib.error.HTTPError as e:
+        t = e.read().decode()
+        g = re.search(r"max_total_tokens=(\d+)", t) or \
+            re.search(r"maximum context length is (\d+) tokens", t)
+        if g:
+            print(f"{m[\"model_name\"]:44} context={g.group(1)}")
+        else:
+            print(f"{m[\"model_name\"]:44} unreachable: {json.loads(t).get(\"detail\", t)[:70]}")'
+```
+
+Two refinements over a bare probe:
+
+- **The number is the total window, not the output budget.** Set `limit.output`
+  well below it: OpenCode passes it verbatim as `max_tokens`, and the gateway
+  enforces `input + max_tokens <= context`. `/models-plgrid-format` also advertises
+  a `default_max_tokens_limit` for some models; where present it is a safe ceiling.
+- **A row with no number is unreachable, not small.** Grant gating and
+  `is_active: false` (HTTP 503) produce no context to measure until access is fixed.
 
 ## Throughput
 
-Median of three, identical token budget, so that model speed is not confounded with
-how much work a model chooses to do:
+Fixed output length, streamed, interleaved across models:
 
 ```bash
-python3 - <<'PY'
-import json, time, statistics, urllib.request
-K = open('/Users/you/.config/opencode/plgrid.key').read().strip()
-URL = "https://llmlab.plgrid.pl/api/v1/chat/completions"
-MODELS = ["zai-org/GLM-5.2-FP8", "zai-org/GLM-4.7-Flash",
-          "Qwen/Qwen3.6-27B", "Qwen/Qwen3.6-35B-A3B",
-          "Qwen/Qwen3-Coder-30B-A3B-Instruct", "google/gemma-4-31B"]
-PROMPT = ("Write a Python function that reverses a linked list iteratively. "
-          "Code only, no explanation.")
-
-def once(m):
-    body = {"model": m, "max_tokens": 300, "temperature": 0,
-            "messages": [{"role": "user", "content": PROMPT}]}
-    r = urllib.request.Request(URL, data=json.dumps(body).encode(),
-        headers={"Authorization": f"Bearer {K}", "Content-Type": "application/json"})
-    t0 = time.time()
-    with urllib.request.urlopen(r, timeout=300) as resp:
-        d = json.loads(resp.read())
-    el = time.time() - t0
-    ct = (d.get("usage") or {}).get("completion_tokens") or 0
-    return el, ct, ct / el if el else 0
-
-for m in MODELS:
-    runs = [once(m) for _ in range(3)]
-    print(f"{m:38} {statistics.median(r[0] for r in runs):6.1f}s "
-          f"{statistics.median(r[1] for r in runs):5.0f} tok "
-          f"{statistics.median(r[2] for r in runs):6.1f} tok/s")
-PY
+export LLMLAB_API_KEY=...        # or: set -a; . ./.env; set +a
+python3 research/benchmarks/gateway.py throughput --repeats 5 \
+  zai-org/GLM-5.2-FP8 deepseek-ai/DeepSeek-V4.1-Flash Qwen/Qwen3.6-27B \
+  Qwen/Qwen3.6-35B-A3B Qwen/Qwen3-Coder-30B-A3B-Instruct google/gemma-4-31B
 ```
 
-**Interpretation warning.** A model that stops early looks fast on wall-clock but
-produced less. Compare `tok/s`, and check the token count — two of the six models
-stopped well before 300 tokens, so their latency figures are not comparable while
-their throughput is.
+Every request forces exactly 300 output tokens (`min_tokens` and `max_tokens`
+together, which the gateway honours), so a model that would stop early is measured
+over the same length as one that would not. The columns are `tok/s`, the generation
+rate between the first and last streamed token; `ttft s`, time to first token; and
+`e2e tok/s`, tokens over total wall time. A `WARN token counts` status means
+`min_tokens` was ignored and the row is not comparable.
+
+**Interpretation warnings.**
+
+- **A budget is not a length.** Without `min_tokens`, a model that stops after about 50
+  tokens has its rate dominated by fixed latency. That understated `Qwen3-Coder-30B` at
+  88 tok/s; at a forced 300 tokens its generation rate was 146.
+- **The gateway is shared, and its load moves within minutes.** `Qwen3.6-35B-A3B`
+  measured 54, 174 and 213 tok/s in three runs two minutes apart. The rounds are
+  interleaved so a load spike hits every model, and the range column shows the spread:
+  when two models' ranges overlap, do not rank them. A figure from one afternoon is a
+  snapshot, not a property of the model.
 
 ## Tool-calling support, directly
 
@@ -110,23 +141,57 @@ curl -sH "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{
 
 A model without a tool-call parser returns HTTP 400 mentioning
 `--enable-auto-tool-choice`. **A 200 response is not proof of usable tool calling** —
-check that `choices[0].message.tool_calls` is actually populated. This probe alone
-gave a false positive on `QwQ-32B`; the gateway's `function_calling_supported` field
-is the reliable answer.
+check that `choices[0].message.tool_calls` is actually populated. The gateway's
+`function_calling_supported` field is the right default, but it can lag the
+deployment: `QwQ-32B` is listed without function calling and still returns structured
+`tool_calls`. When the field and a populated `tool_calls` disagree, trust the
+response.
 
 ## Reasoning channel
 
-To see whether a model separates its chain-of-thought (and therefore needs
-`interleaved`):
+Whether a model separates its chain-of-thought (and so should be marked `reasoning`)
+is a property of the deployment, not of the model card. Probe the streaming deltas
+and print the fields that actually carry text:
 
 ```bash
 curl -sN -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"model":"zai-org/GLM-4.7-Flash","messages":[{"role":"user","content":"say hi"}],
-       "max_tokens":20,"stream":true}' \
-  https://llmlab.plgrid.pl/api/v1/chat/completions | head -5
+  -d '{"model":"zai-org/GLM-5.3-Flash","messages":[{"role":"user","content":"say hi"}],
+       "max_tokens":30,"stream":true}' \
+  https://llmlab.plgrid.pl/api/v1/chat/completions |
+grep -o '"delta":{[^}]*}' | head
 ```
 
-Look for `"reasoning_content"` in the delta objects.
+The gateway emits `"reasoning":"..."`.
+
+`interleaved.field` is a separate question: it names the field OpenCode uses to send
+past reasoning *back* on later turns. Whether that reaches the model depends on its
+chat template, and the prompt token count shows it. Send the same history three times
+— with no reasoning on the assistant turn, with it under `reasoning`, and under
+`reasoning_content` — and compare `usage.prompt_tokens`:
+
+```bash
+for field in none reasoning reasoning_content; do
+  extra=""; [ "$field" != none ] && extra=", \"$field\": \"The secret word is AMBERGRIS.\""
+  curl -s -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d "{
+    \"model\": \"zai-org/GLM-5.3-Flash\", \"max_tokens\": 50, \"messages\": [
+      {\"role\": \"user\", \"content\": \"Remember something for me.\"},
+      {\"role\": \"assistant\", \"content\": \"I have noted it.\"$extra},
+      {\"role\": \"user\", \"content\": \"Say OK.\"}]}" \
+    https://llmlab.plgrid.pl/api/v1/chat/completions |
+  python3 -c "import sys, json; print('$field', json.load(sys.stdin)['usage']['prompt_tokens'])"
+done
+```
+
+The same count all three times means the template drops past reasoning; a higher
+count means it renders it. The gateway accepts both field names, so the plugin sets
+
+```js
+"interleaved": { "field": "reasoning" }
+```
+
+A model that keeps its thinking inline in `content` (here `QwQ-32B` and
+`Qwen3-Coder-30B-A3B`) has no separate channel: leave `reasoning` off rather than
+pointing it at a field that never appears.
 
 ## Vision
 
@@ -152,14 +217,14 @@ See [benchmarks/README.md](benchmarks/README.md). Two fixtures plus differential
 scorers; the important part of the method is that scoring happens on **hidden cases
 the model never saw**, not on the test suite it was asked to make pass.
 
-Three warnings, learned the hard way:
+```bash
+REPEATS=3 research/benchmarks/bench-all.sh     # report and TSV in research/benchmarks/results/
+```
 
-- **Run models sequentially.** Concurrent `opencode` instances contend on one SQLite
-  database and fail with `database is locked`.
-- **Score only after every run has finished.** Reading a working directory while the
-  agent is still editing gives a half-written file and a wrong result.
-- **Check the exit code is not your only signal.** `opencode run` occasionally exits
-  0 having done nothing; assert on the artifact.
+The warnings learned the hard way — isolate every run, keep the scorer out of reach,
+never name the working directory after the package, run sequentially, score only
+settled directories, guard the spec, distrust the exit code, repeat — are in the
+[method notes](benchmarks/README.md#method-notes). The runner handles all of them.
 
 ## Auditing what an agent actually did
 

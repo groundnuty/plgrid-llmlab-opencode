@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "plgrid/zai-org/GLM-5.2-FP8",
+  "model": "plgrid/deepseek-ai/DeepSeek-V4.1-Flash",
   "small_model": "plgrid/google/gemma-4-31B",
   "instructions": [
     "AGENTS.md"
@@ -49,9 +49,20 @@
       "rg *": "allow",
       "grep *": "allow",
       "find *": "allow",
-      "git status": "allow",
+      "echo *": "allow",
+      "head *": "allow",
+      "tail *": "allow",
+      "wc *": "allow",
+      "sort *": "allow",
+      "uniq *": "allow",
+      "diff *": "allow",
+      "pwd": "allow",
+      "which *": "allow",
+      "tree *": "allow",
+      "git status*": "allow",
       "git diff *": "allow",
       "git log *": "allow",
+      "git show *": "allow",
       "git commit*": "ask",
       "python3 *": "allow",
       "pytest *": "allow",
@@ -64,7 +75,7 @@
   },
   "agent": {
     "chat": {
-      "description": "Plain chat with no tools. Required for the PLGrid models that lack function calling (Bielik v2.6, PLLuM, QwQ-32B, Qwen3-VL) \u2014 the built-in build/plan agents always send a tools array, which those models reject with HTTP 400.",
+      "description": "Plain chat with no tools, for models that cannot call tools.",
       "mode": "primary",
       "tools": {
         "*": false
@@ -72,7 +83,7 @@
       "steps": 5
     },
     "reviewer": {
-      "description": "Reviews code for correctness, security and maintainability. Reads only - never edits or runs commands. Qwen3.6-27B is the slowest model here (26 tok/s) - a deliberate quality-over-speed trade, backed by 14/14 differential correctness.",
+      "description": "Reviews a change for correctness, security and maintainability defects and reports them with file:line, most severe first. Read-only: never edits files or runs commands.",
       "mode": "subagent",
       "model": "plgrid/Qwen/Qwen3.6-27B",
       "temperature": 0.1,
@@ -86,7 +97,7 @@
     "researcher": {
       "description": "Investigates how something works across the codebase and reports findings. Read-only.",
       "mode": "subagent",
-      "model": "plgrid/zai-org/GLM-5.2-FP8",
+      "model": "plgrid/deepseek-ai/DeepSeek-V4.1-Flash",
       "prompt": "You investigate and report. Trace the actual code paths, quote the lines that matter with file:line, and distinguish what you verified from what you inferred. Answer the question asked \u2014 do not summarise the whole codebase. Use your tools to inspect real files rather than guessing at contents. Put only the parameter value inside a tool call - never reasoning or commentary. Do your thinking before the call, then emit a clean call.",
       "permission": {
         "edit": "deny",
@@ -101,9 +112,9 @@
       "steps": 30
     },
     "architect": {
-      "description": "Read-only planner. Investigates, states a plan, then delegates every edit to a subagent. Cannot write files itself - this is what stops a mid-tier model making a mess directly. Note the built-in 'plan' agent cannot do this: it has task delegation denied, so a custom agent is required.",
+      "description": "Plans and delegates. Investigates with read-only tools, states a numbered plan, then hands every edit to a subagent. Cannot edit files itself.",
       "mode": "primary",
-      "model": "plgrid/zai-org/GLM-5.2-FP8",
+      "model": "plgrid/deepseek-ai/DeepSeek-V4.1-Flash",
       "temperature": 0.1,
       "prompt": "You plan and delegate; you never edit files yourself. Investigate first with read and search tools. Then state a concrete plan as numbered steps, each naming the files it touches. Delegate implementation to @fastfix for small mechanical edits and @general for substantial ones, and use @reviewer to check the result. If a step is too vague to delegate, sharpen it before handing it over. Use your tools to inspect real files rather than guessing at contents. Put only the parameter value inside a tool call - never reasoning or commentary. Do your thinking before the call, then emit a clean call.",
       "tools": {
@@ -119,9 +130,9 @@
       "steps": 40
     },
     "fastfix": {
-      "description": "Small, well-specified mechanical edits - rename, add a docstring, fix an obvious bug. Chosen on measured throughput (123 tok/s) AND perfect differential correctness; Qwen3.6-35B-A3B is faster (165 tok/s) but produced a silently-wrong solution in 1 of 2 trials, which is disqualifying for unattended edits.",
+      "description": "Small, well-specified mechanical edits: a rename, a docstring, an obvious one-line fix. Give it the exact files and the exact change.",
       "mode": "subagent",
-      "model": "plgrid/zai-org/GLM-4.7-Flash",
+      "model": "plgrid/deepseek-ai/DeepSeek-V4.1-Flash",
       "temperature": 0.1,
       "prompt": "Make the smallest change that satisfies the request. Do not refactor adjacent code, do not add comments that were not asked for, do not reformat untouched lines. When done, state in one line what you changed. Use your tools to inspect real files rather than guessing at contents. Put only the parameter value inside a tool call - never reasoning or commentary. Do your thinking before the call, then emit a clean call.",
       "steps": 15
