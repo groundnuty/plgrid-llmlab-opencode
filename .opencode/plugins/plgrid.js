@@ -1,5 +1,10 @@
 // PLGrid Forge (ACK Cyfronet) - unofficial opencode provider plugin.
 //
+// One file serves both OpenCode release lines, which have different plugin APIs:
+//   1.x (1.18.5 or newer) - calls server(): the config and auth hooks below
+//   2.x                   - calls setup(): registers the same provider, models
+//                           and API-key login through V2 transforms
+//
 // Drop this file into one of:
 //   <project>/.opencode/plugins/      - this project only
 //   ~/.config/opencode/plugins/       - every project on this machine
@@ -8,9 +13,9 @@
 // with their own PLGrid grant key.
 //
 // After installing, authenticate once with:
-//   opencode providers login -p plgrid
-// The key is stored in ~/.local/share/opencode/auth.json - no key ever
-// needs to appear in a config file or an environment variable.
+//   opencode providers login -p plgrid   (1.x - stored in ~/.local/share/opencode/auth.json)
+//   opencode auth login plgrid           (2.x - stored in ~/.local/share/opencode/opencode.db)
+// No key ever needs to appear in a config file or an environment variable.
 //
 // Model metadata below is measured against the live gateway, not guessed:
 //   tool_call       - the gateway's function_calling_supported field, confirmed
@@ -32,6 +37,9 @@
 // absent because OpenCode cannot use an embedding model as a chat model.
 
 const BASE_URL = "https://llmlab.plgrid.pl/api/v1"
+const PROVIDER_ID = "plgrid"
+const PROVIDER_NAME = "PLGrid Forge (Cyfronet)"
+const KEY_LABEL = "API Key (llmlab.plgrid.pl -> Grants -> Generate API Key)"
 
 const MODELS = {
   "zai-org/GLM-5.2-FP8": {
@@ -231,7 +239,7 @@ export const PLGridForge = async () => ({
     // override one.
     config.provider.plgrid = {
       npm: "@ai-sdk/openai-compatible",
-      name: "PLGrid Forge (Cyfronet)",
+      name: PROVIDER_NAME,
       ...user,
       options: { baseURL: BASE_URL, ...(user.options ?? {}) },
       models: mergeModels(MODELS, user.models ?? {}),
@@ -239,7 +247,7 @@ export const PLGridForge = async () => ({
   },
 
   auth: {
-    provider: "plgrid",
+    provider: PROVIDER_ID,
     loader: async (getAuth) => {
       const auth = await getAuth()
       if (auth?.type === "api") return { apiKey: auth.key }
@@ -248,8 +256,44 @@ export const PLGridForge = async () => ({
     methods: [
       {
         type: "api",
-        label: "API Key (llmlab.plgrid.pl -> Grants -> Generate API Key)",
+        label: KEY_LABEL,
       },
     ],
   },
 })
+
+// OpenCode 2.x has neither hook. The key method makes `opencode auth login plgrid`
+// work, and the provider stays hidden until a key is stored. interleaved.field is
+// called compatibility.reasoningField in 2.x, and a model's input must be listed
+// explicitly: 2.x assumes text and image unless told otherwise.
+const setup = async (ctx) => {
+  await ctx.integration.transform((integrations) => {
+    integrations.update(PROVIDER_ID, (integration) => {
+      integration.name = PROVIDER_NAME
+    })
+    integrations.method.update({ integrationID: PROVIDER_ID, method: { type: "key", label: KEY_LABEL } })
+  })
+  await ctx.provider.transform((providers) => {
+    providers.update(PROVIDER_ID, (provider) => {
+      provider.name = PROVIDER_NAME
+      provider.package = "@opencode/ai/providers/openai-compatible"
+      provider.settings = { baseURL: BASE_URL, ...provider.settings }
+    })
+    for (const [id, model] of Object.entries(MODELS)) {
+      providers.models.update(PROVIDER_ID, id, (draft) => {
+        draft.name = model.name
+        draft.capabilities = {
+          tools: model.tool_call,
+          input: model.attachment ? ["text", "image"] : ["text"],
+          output: ["text"],
+        }
+        if (model.limit) draft.limit = { ...draft.limit, ...model.limit }
+        if (model.interleaved) draft.compatibility = { ...draft.compatibility, reasoningField: model.interleaved.field }
+      })
+    }
+  })
+}
+
+// 1.x calls server and 2.x calls setup; 2.x rejects a plugin without this default
+// export. PLGridForge stays a named export as well, and 1.x still runs the plugin once.
+export default { id: PROVIDER_ID, server: PLGridForge, setup }

@@ -84,6 +84,9 @@ if [[ -f "$ROOT/venv/bin/activate" ]]; then
   . "$ROOT/venv/bin/activate"
 fi
 command -v opencode >/dev/null || die "opencode not on PATH"
+# The isolation below was built and tested on OpenCode 1.x only; on 2.x it is unverified.
+[[ "$(opencode --version 2>/dev/null)" == 1.* ]] \
+  || die "opencode $(opencode --version 2>/dev/null) is not 1.x; this runner supports OpenCode 1.x only"
 command -v git >/dev/null || die "git not on PATH"
 python3 -c 'import pytest' 2>/dev/null || die "python3 cannot import pytest; install it into the project venv"
 (( BASH_VERSINFO[0] >= 4 )) || die "bash $BASH_VERSION is too old; bash 4 or newer is required (macOS: brew install bash)"
