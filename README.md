@@ -4,6 +4,11 @@ A working, sane OpenCode setup for the PLGrid Forge models on ACK Cyfronet
 supercomputers. Drop it in, log in once, and you have an agentic coding assistant
 running on Polish academic infrastructure.
 
+OpenCode ships in two forms: a terminal app (the TUI, started with `opencode`, plus
+`opencode run` for scripts) and graphical apps (the desktop app and the web
+interface). **This setup covers the terminal TUI only.** Everything here was built
+and tested in the terminal; the graphical apps were not tested.
+
 Model capabilities, context limits and the benchmark figures below were **measured
 against the live gateway**, not copied from model cards.
 
@@ -23,8 +28,8 @@ against the live gateway**, not copied from model cards.
   [Forge guide](https://guide.plgrid.pl/en/integrated-platforms/plgrid_forge).
   Activate the service at <https://portal.plgrid.pl/services/111>, then generate a
   key at <https://llmlab.plgrid.pl> under **Grants → Generate API Key**.
-- [OpenCode](https://opencode.ai) 1.18.5 or newer. Both the 1.x and the 2.x version
-  work — see the next section.
+- [OpenCode](https://opencode.ai) 1.18.5 or newer, the terminal version. Both the 1.x
+  and the 2.x version work — see the next section.
 - Optional but recommended: `npm install -g pyright` for in-editor diagnostics
   (see *LSP* below).
 
