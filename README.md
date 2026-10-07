@@ -23,68 +23,36 @@ against the live gateway**, not copied from model cards.
   [Forge guide](https://guide.plgrid.pl/en/integrated-platforms/plgrid_forge).
   Activate the service at <https://portal.plgrid.pl/services/111>, then generate a
   key at <https://llmlab.plgrid.pl> under **Grants → Generate API Key**.
-- [OpenCode](https://opencode.ai) 1.x (1.18.5 or newer) or 2.x. These are two
-  different release lines, and your install method decides which one you get — see
-  the next section.
+- [OpenCode](https://opencode.ai) 1.18.5 or newer. Both the 1.x and the 2.x version
+  work — see the next section.
 - Optional but recommended: `npm install -g pyright` for in-editor diagnostics
   (see *LSP* below).
 
 ## OpenCode 1.x and 2.x
 
-OpenCode currently ships as **two separate release lines**. 2.x is a new major
-version with its own docs, CLI commands, plugin API and configuration format. 1.x is
-still maintained and still released. Which one you have depends on how you installed it.
-As of 2026-10-06:
+OpenCode is currently available in two versions, 1.x and 2.x. Which one you get
+depends on how you install it; `opencode --version` tells you which one you have.
 
-| | 1.x | 2.x |
+| | OpenCode 1.x | OpenCode 2.x |
 |---|---|---|
-| Installed by | `curl -fsSL https://opencode.ai/install \| bash`<br>`npm install -g opencode-ai` | `brew install opencode`<br>`curl -fsSL https://opencode.ai/v2/install \| bash`<br>`npm install -g @opencode/cli` |
-| `opencode --version` prints | `1.18.34` | `opencode v2.0.24` |
-| Docs | <https://opencode.ai/docs/> | <https://opencode.ai/v2/docs/> |
+| Install with | `curl -fsSL https://opencode.ai/install \| bash`<br>or `npm install -g opencode-ai` | `brew install opencode`<br>or `curl -fsSL https://opencode.ai/v2/install \| bash` |
+| `opencode --version` shows | `1.…` | `opencode v2.…` |
 | Log in to PLGrid | `opencode providers login -p plgrid` | `opencode auth login plgrid` |
-| Key stored in | `~/.local/share/opencode/auth.json` | `~/.local/share/opencode/opencode.db` |
+| Docs | [opencode.ai/docs](https://opencode.ai/docs/) | [opencode.ai/v2/docs](https://opencode.ai/v2/docs/) |
 
-Both install scripts write to `~/.opencode/bin/opencode`, so running one replaces
-the other.
+**This setup works with both**, and you install it the same way. On 2.x, three things
+differ:
 
-**This repo works with both.**
+- **2.x needs its own login.** If you already used 1.x, 2.x copies your key the first
+  time it runs. On a fresh install, run `opencode auth login plgrid`; until then the
+  PLGrid models do not appear.
+- **No LSP.** 2.x does not run language servers, so the *LSP* section below applies to
+  1.x only.
+- **Per-agent temperature settings are ignored** for now.
 
-- `opencode.json` is written in the 1.x format. 2.x reads that format and converts it
-  in memory at startup. Do **not** rewrite it in native 2.x syntax: 1.x refuses to
-  start on 2.x `permissions` rules.
-- `.opencode/plugins/plgrid.js` has an entry point for each line. 1.x calls `server()`,
-  and 2.x calls `setup()`, which registers the same provider, the same 20 models and
-  the same API-key login through 2.x's own plugin API. Before this change 2.x
-  rejected the plugin outright, so none of the `plgrid/...` models existed there.
-
-Tested on 2026-10-06:
-
-- **1.18.5 and 1.18.34:** the plugin registers all 20 models.
-- **1.18.34:** a live request also succeeds.
-- **2.0.24:**
-  - All 20 models register with the same names, tool support, limits and reasoning
-    field.
-  - The default model creates a file through a tool call.
-  - The `chat` agent works with a model that cannot call tools.
-  - `architect` delegates an edit to `@fastfix`.
-  - Login works, and so does importing an existing 1.x key.
-
-**What is different on 2.x:**
-
-- **No LSP.** 2.x accepts `lsp` but, per its docs, does not run language servers. The
-  *LSP* section below applies to 1.x only.
-- **Agent `temperature` is not applied.** According to the 2.x docs, it keeps the
-  value but does not send it yet. That affects `reviewer`, `architect` and `fastfix`.
-- **`compaction.prune` is dropped.** 2.x does not support it, and logs *"omitted
-  unsupported legacy setting"*. This warning is harmless.
-- **Logging in.** When 2.x first takes over an existing 1.x install, it imports the
-  1.x key. After that the two lines keep separate keys. On a fresh 2.x install, run
-  `opencode auth login plgrid`.
-- **The provider stays hidden until a key is stored.**
-- **`opencode models` can come back empty** on the first call after the background
-  service starts. Run it again.
-- **The benchmark runner is 1.x only.** It refuses to run on 2.x. All measurements and
-  source references under [research/](research/) were made on 1.x.
+If you edit `opencode.json`, keep its current format. 2.x reads it fine, but 1.x will
+not start with a config written in the newer 2.x format. How the plugin supports both
+versions is described in [research/plugin.md](research/plugin.md).
 
 ## Install
 
@@ -117,7 +85,7 @@ instead:
 cp opencode.json ~/.config/opencode/opencode.json
 ```
 
-Then authenticate once. The command depends on the release line:
+Then authenticate once. The command depends on your OpenCode version:
 
 ```bash
 opencode providers login -p plgrid   # 1.x
