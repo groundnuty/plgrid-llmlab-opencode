@@ -206,6 +206,9 @@ benchmark this looks exactly like the model failing, when it never got to act. U
 
 ### LSP needs the server binary installed
 
+**OpenCode 1.x only** — 2.x runs no language servers, so no diagnostics come back
+after an edit however the config is set.
+
 `"lsp": true` alone starts nothing if the language server is absent — agents then
 silently fall back to guessing, or improvise `npx pyright`. Install what you need:
 

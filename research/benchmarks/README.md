@@ -72,8 +72,9 @@ research/benchmarks/bench-all.sh --throughput-only
 
 **Prerequisites.** `LLMLAB_API_KEY` exported or in the repo-root `.env`; the project
 `venv/` with `pytest` (the script activates it, and the agent's `python3 -m pytest`
-inherits it); `git`; `opencode` with the plgrid provider logged in
-(`opencode providers login -p plgrid`); bash 4 or newer; and GNU coreutils `timeout`
+inherits it); `git`; **OpenCode 1.x** with the plgrid provider logged in
+(`opencode providers login -p plgrid`) — the runner's isolation is built on 1.x
+behaviour, so it refuses to start on 2.x; bash 4 or newer; and GNU coreutils `timeout`
 and `md5sum`. On macOS: `brew install bash coreutils`. The script checks all of this
 before it starts. `--help` lists the environment variables.
 
@@ -202,6 +203,13 @@ they matter if you change it or run a fixture by hand.
   only record of whether a model went looking for the scorer.
 
 ## Throughput
+
+Throughput needs no OpenCode at all, so it can be measured on any machine, 2.x
+included, with `LLMLAB_API_KEY` set:
+
+```bash
+python3 research/benchmarks/gateway.py throughput MODEL...
+```
 
 `gateway.py throughput`, which `bench-all.sh` runs, streams one fixed prompt at
 temperature 0 and forces exactly `THROUGHPUT_TOKENS` (default 300) output tokens by

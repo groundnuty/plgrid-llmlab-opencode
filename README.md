@@ -157,7 +157,7 @@ and Polish-language work.
 | `architect` | primary | DeepSeek-V4.1-Flash | Plans and delegates; **cannot edit files** |
 | `chat` | primary | any | No tools — for the non-function-calling models |
 | `researcher` | subagent | DeepSeek-V4.1-Flash | Traces code paths, read-only |
-| `reviewer` | subagent | Qwen3.6-27B, t=0.1 | Finds defects, read-only |
+| `reviewer` | subagent | Qwen3.6-27B, t=0.1 on 1.x | Finds defects, read-only |
 | `fastfix` | subagent | DeepSeek-V4.1-Flash | Small, well-specified mechanical edits |
 
 Invoke subagents with `@researcher`, `@reviewer`, `@fastfix`. Cycle primary agents
@@ -314,8 +314,8 @@ about constraints and independence rather than price:
 - `fastfix` gets a narrow prompt and a 15-step cap; the constraint is the point. It
   runs on DeepSeek-V4.1-Flash, the same model as the `architect`, because that model
   had a perfect record and finished tasks fastest.
-- The `reviewer` is deliberately a different model family — Qwen3.6-27B at
-  temperature 0.1 — so a review is not the author checking its own work.
+- The `reviewer` is deliberately a different model family — Qwen3.6-27B, at
+  temperature 0.1 on 1.x — so a review is not the author checking its own work.
 
 Note the built-in `plan` agent cannot do this: it has `task: { general: "deny" }`
 hardcoded, so it can never hand work to an implementer. That is why `architect`
