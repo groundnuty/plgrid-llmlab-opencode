@@ -67,16 +67,30 @@ How the plugin supports both versions is described in
 
 ## Install
 
-Choose one of the two setups.
+### 1. Check your OpenCode version
 
-**Per project.** Copy the plugin, the agent directives and the config into the root of
-your project:
+```bash
+opencode --version
+```
+
+`1.…` means 1.x, `opencode v2.…` means 2.x. Step 3 differs between the two.
+
+### 2. Copy the setup files
+
+The setup is the provider plugin, the config and the agent directives. Install it for
+one project or for every project on the machine.
+
+#### Per project
+
+Copy the plugin, the agent directives and the config into the root of your project:
 
 ```bash
 cp -r .opencode AGENTS.md opencode.json /path/to/your/project/
 ```
 
-**Machine-wide.** Create OpenCode's global plugin directory, if it does not exist yet:
+#### Machine-wide
+
+Create OpenCode's global plugin directory, if it does not exist yet:
 
 ```bash
 mkdir -p ~/.config/opencode/plugins
@@ -96,34 +110,44 @@ instead:
 cp opencode.json ~/.config/opencode/opencode.json
 ```
 
-Then authenticate once. On 1.x:
+### 3. Log in and verify
+
+Log in once with your grant's API key. OpenCode stores it in your home directory —
+**never** in any file in this repo.
+
+#### OpenCode 1.x
+
+Log in and paste the key. It is stored in `~/.local/share/opencode/auth.json`:
 
 ```bash
 opencode providers login -p plgrid
 ```
 
-On 2.x:
-
-```bash
-opencode auth login plgrid
-```
-
-Paste your grant's API key. It is stored in `~/.local/share/opencode/auth.json` (1.x)
-or `~/.local/share/opencode/opencode.db` (2.x) — **never** in any file in this repo.
-
-Verify that the provider is registered — this should list 20 models. On 1.x:
+Check that the provider is registered. This should list 20 models:
 
 ```bash
 opencode models plgrid
 ```
 
-On 2.x (if it prints nothing, run it again):
+#### OpenCode 2.x
+
+Log in and paste the key. It is stored in `~/.local/share/opencode/opencode.db`:
+
+```bash
+opencode auth login plgrid
+```
+
+Check that the provider is registered. This should list 20 models; if it prints
+nothing, run it again:
 
 ```bash
 opencode models | grep '^plgrid/'
 ```
 
-Then start the TUI. Use `/models` to switch model and **Tab** to switch agent:
+### 4. Start the OpenCode TUI
+
+Run it in your project directory. Use `/models` to switch model and **Tab** to switch
+agent:
 
 ```bash
 opencode
