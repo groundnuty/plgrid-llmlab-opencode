@@ -4,6 +4,12 @@ A working, sane OpenCode setup for the PLGrid Forge models on ACK Cyfronet
 supercomputers. Drop it in, log in once, and you have an agentic coding assistant
 running on Polish academic infrastructure.
 
+> [!IMPORTANT]
+> OpenCode ships in two forms: a terminal app (the TUI, started with `opencode`, plus
+> `opencode run` for scripts) and graphical apps (the desktop app and the web
+> interface). **This setup covers the terminal TUI only.** Everything here was built
+> and tested in the terminal; the graphical apps were not tested.
+
 Model capabilities, context limits and the benchmark figures below were **measured
 against the live gateway**, not copied from model cards.
 
@@ -23,8 +29,8 @@ against the live gateway**, not copied from model cards.
   [Forge guide](https://guide.plgrid.pl/en/integrated-platforms/plgrid_forge).
   Activate the service at <https://portal.plgrid.pl/services/111>, then generate a
   key at <https://llmlab.plgrid.pl> under **Grants → Generate API Key**.
-- [OpenCode](https://opencode.ai) 1.18.5 or newer. Both the 1.x and the 2.x version
-  work — see the next section.
+- [OpenCode](https://opencode.ai) 1.18.5 or newer, the terminal version. Both the 1.x
+  and the 2.x version work — see the next section.
 - Optional but recommended: `npm install -g pyright` for in-editor diagnostics
   (see *LSP* below).
 
@@ -32,6 +38,11 @@ against the live gateway**, not copied from model cards.
 
 OpenCode is currently available in two versions, 1.x and 2.x. Which one you get
 depends on how you install it; `opencode --version` tells you which one you have.
+
+> [!NOTE]
+> 2.x has been released since 2026-09-11 (2.0.0). 1.x has not been retired: as of
+> 2026-10-07 it is still released (1.18.35, published 2026-10-06), and no end-of-support
+> date has been announced.
 
 | | OpenCode 1.x | OpenCode 2.x |
 |---|---|---|
@@ -46,26 +57,40 @@ differ:
 - **2.x needs its own login.** If you already used 1.x, 2.x copies your key the first
   time it runs. On a fresh install, run `opencode auth login plgrid`; until then the
   PLGrid models do not appear.
-- **No LSP.** 2.x does not run language servers, so the *LSP* section below applies to
-  1.x only.
+- **No LSP.** 2.x does not run language servers; see *LSP* below.
 - **Per-agent temperature settings are ignored** for now.
 
-If you edit `opencode.json`, keep its current format. 2.x reads it fine, but 1.x will
-not start with a config written in the newer 2.x format. How the plugin supports both
-versions is described in [research/plugin.md](research/plugin.md).
+`opencode.json` is written in the 1.x format, and 2.x converts it at startup. If you
+edit it, keep that format: 1.x does not start with a config written in the 2.x format.
+How the plugin supports both versions is described in
+[research/plugin.md](research/plugin.md).
 
 ## Install
 
-Choose one of the two setups.
+### 1. Check your OpenCode version
 
-**Per project.** Copy the plugin, the agent directives and the config into the root of
-your project:
+```bash
+opencode --version
+```
+
+`1.…` means 1.x, `opencode v2.…` means 2.x. Step 3 differs between the two.
+
+### 2. Copy the setup files
+
+The setup is the provider plugin, the config and the agent directives. Install it for
+one project or for every project on the machine.
+
+#### Per project
+
+Copy the plugin, the agent directives and the config into the root of your project:
 
 ```bash
 cp -r .opencode AGENTS.md opencode.json /path/to/your/project/
 ```
 
-**Machine-wide.** Create OpenCode's global plugin directory, if it does not exist yet:
+#### Machine-wide
+
+Create OpenCode's global plugin directory, if it does not exist yet:
 
 ```bash
 mkdir -p ~/.config/opencode/plugins
@@ -85,24 +110,44 @@ instead:
 cp opencode.json ~/.config/opencode/opencode.json
 ```
 
-Then authenticate once. The command depends on your OpenCode version:
+### 3. Log in and verify
+
+Log in once with your grant's API key. OpenCode stores it in your home directory —
+**never** in any file in this repo.
+
+#### OpenCode 1.x
+
+Log in and paste the key. It is stored in `~/.local/share/opencode/auth.json`:
 
 ```bash
-opencode providers login -p plgrid   # 1.x
-opencode auth login plgrid           # 2.x
+opencode providers login -p plgrid
 ```
 
-Paste your grant's API key. It is stored in `~/.local/share/opencode/auth.json` (1.x)
-or `~/.local/share/opencode/opencode.db` (2.x) — **never** in any file in this repo.
-
-Verify that the provider is registered — this should list 20 models:
+Check that the provider is registered. This should list 20 models:
 
 ```bash
-opencode models plgrid               # 1.x
-opencode models | grep '^plgrid/'    # 2.x — if it prints nothing, run it again
+opencode models plgrid
 ```
 
-Then start the TUI. Use `/models` to switch model and **Tab** to switch agent:
+#### OpenCode 2.x
+
+Log in and paste the key. It is stored in `~/.local/share/opencode/opencode.db`:
+
+```bash
+opencode auth login plgrid
+```
+
+Check that the provider is registered. This should list 20 models; if it prints
+nothing, run it again:
+
+```bash
+opencode models | grep '^plgrid/'
+```
+
+### 4. Start the OpenCode TUI
+
+Run it in your project directory. Use `/models` to switch model and **Tab** to switch
+agent:
 
 ```bash
 opencode
@@ -180,7 +225,14 @@ request. OpenCode already injects the agent and command descriptions from
 
 ## LSP
 
-**OpenCode 1.x only** — 2.x does not run language servers.
+> [!WARNING]
+> **OpenCode 1.x only.** 2.x accepts `lsp` but runs no language servers and returns no
+> diagnostics ([migration guide](https://opencode.ai/v2/docs/migrate-v1/)). Upstream
+> has not said whether this changes: see
+> [anomalyco/opencode#50916](https://github.com/anomalyco/opencode/issues/50916), and
+> [#51416](https://github.com/anomalyco/opencode/issues/51416) for LSP access from
+> plugins. On 2.x, `AGENTS.md` tells agents to run the project's type checker or
+> linter instead.
 
 `"lsp": true` is set, and it is worth having: after **every edit** OpenCode feeds
 the language server's diagnostics straight back to the agent, which then fixes its
