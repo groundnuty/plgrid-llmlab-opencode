@@ -206,6 +206,9 @@ benchmark this looks exactly like the model failing, when it never got to act. U
 
 ### LSP needs the server binary installed
 
+**OpenCode 1.x only** — 2.x runs no language servers, so no diagnostics come back
+after an edit however the config is set.
+
 `"lsp": true` alone starts nothing if the language server is absent — agents then
 silently fall back to guessing, or improvise `npx pyright`. Install what you need:
 
@@ -237,6 +240,20 @@ Prune only fires when more than 20k tokens remain prunable *after* protecting th
 most recent 40k of tool output — so roughly 60k of accumulated tool output is needed
 before it does anything. A 32k-context model can never reach that. It is useful for
 200k+ models only, and it is opt-in.
+
+### Scripting, and switching between 1.x and 2.x
+
+Observed on 1.18.30, 2.0.20 and 2.0.24:
+
+- **`opencode run` hangs while stdin is an open pipe**, on both versions. Redirect it:
+  `opencode run … </dev/null`.
+- **2.0.20 aborts a headless run when the agent asks a question.** The run exits 1 with
+  *"The user dismissed this question"*. 2.0.24 proceeds with a stated assumption, so
+  script on 2.0.24 or later.
+- **2.x migrates the shared `opencode.db` in place** on first start. 1.x still runs on
+  the migrated database, so switching back works.
+- **2.x imports a 1.x key only from a real 1.x data directory.** A hand-copied
+  `auth.json` on its own is ignored; run `opencode auth login plgrid` instead.
 
 ---
 

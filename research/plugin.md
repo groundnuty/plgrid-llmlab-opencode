@@ -38,7 +38,18 @@ grant, a plugin is the better fit, not a lesser one.
 
 ## How it works
 
-Two hooks and a small merge helper.
+The file serves both OpenCode release lines (see the README's *OpenCode 1.x and 2.x*)
+through one default export:
+
+```js
+export default { id: "plgrid", server: PLGridForge, setup }
+```
+
+1.x calls `server`, and 2.x calls `setup`. 2.x rejects a plugin that has only named
+exports, with *"Plugin must export a default definition with an id and an effect or
+setup function"*, which is how the plugin failed there before this export was added.
+
+On **1.x**, `server` returns two hooks, and they share a small merge helper.
 
 **`config`** — injects the provider and all 20 models at startup:
 
@@ -87,7 +98,37 @@ auth: {
 }
 ```
 
+On **2.x** there is no `config` or `auth` hook and no mutable global config. `setup`
+registers the same things through transforms:
+
+- `ctx.integration.transform` adds a `key` login method under the ID `plgrid`. That
+  makes `opencode auth login plgrid` work, and stores the key in
+  `~/.local/share/opencode/opencode.db`.
+- `ctx.provider.transform` creates the provider on 2.x's built-in
+  `@opencode/ai/providers/openai-compatible` package, with the same `baseURL`, and
+  adds every model from the same `MODELS` table. Fields are mapped as follows:
+  - `tool_call` becomes `capabilities.tools`.
+  - `attachment` becomes `capabilities.input`. This must be set explicitly, because 2.x
+    otherwise assumes every model accepts images.
+  - `interleaved.field` becomes `compatibility.reasoningField`.
+  - `limit` stays `limit`. Models without measured limits keep 2.x's defaults.
+
+The provider is left on 2.x's default `auto` activation, so its models stay hidden
+until a key is stored. A per-model override in `opencode.json`, like the one above,
+works on 2.x as well. 2.x converts the 1.x `provider` block itself and applies it on
+top of the plugin's defaults, so the overridden model keeps its other fields.
+
 ## Verified behaviour
+
+The transcript below is from **1.x**. With the 2.x commands, the same setup was checked
+on 2.0.24 on 2026-10-06:
+
+- `opencode models` lists all 20 models.
+- `opencode auth login plgrid` stores the key.
+- A run with `-m plgrid/Qwen/Qwen3.6-35B-A3B` answers.
+- The default model completes a file-writing task through a tool call.
+
+
 
 In a directory containing **only** `.opencode/plugins/plgrid.js` — no
 `opencode.json`, no environment variables:
@@ -137,7 +178,8 @@ build this list could reach, so OpenCode's defaults apply to those.
 
 1. **Copy the file** — `.opencode/plugins/` for one project,
    `~/.config/opencode/plugins/` for every project. Recipients run
-   `opencode providers login -p plgrid` with their own grant key.
+   `opencode providers login -p plgrid` (1.x) or `opencode auth login plgrid` (2.x)
+   with their own grant key.
 2. **Git** — clone into the plugins directory, or reference it from the `plugin`
    array in `opencode.json`. Updates arrive with `git pull`.
 3. **npm** — publish and `opencode plugin <name> --global`; OpenCode installs into

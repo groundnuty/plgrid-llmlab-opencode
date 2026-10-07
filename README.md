@@ -23,9 +23,36 @@ against the live gateway**, not copied from model cards.
   [Forge guide](https://guide.plgrid.pl/en/integrated-platforms/plgrid_forge).
   Activate the service at <https://portal.plgrid.pl/services/111>, then generate a
   key at <https://llmlab.plgrid.pl> under **Grants → Generate API Key**.
-- [OpenCode](https://opencode.ai) 1.18.5 or newer (`brew install opencode`).
+- [OpenCode](https://opencode.ai) 1.18.5 or newer. Both the 1.x and the 2.x version
+  work — see the next section.
 - Optional but recommended: `npm install -g pyright` for in-editor diagnostics
   (see *LSP* below).
+
+## OpenCode 1.x and 2.x
+
+OpenCode is currently available in two versions, 1.x and 2.x. Which one you get
+depends on how you install it; `opencode --version` tells you which one you have.
+
+| | OpenCode 1.x | OpenCode 2.x |
+|---|---|---|
+| Install with | `curl -fsSL https://opencode.ai/install \| bash`<br>or `npm install -g opencode-ai` | `brew install opencode`<br>or `curl -fsSL https://opencode.ai/v2/install \| bash` |
+| `opencode --version` shows | `1.…` | `opencode v2.…` |
+| Log in to PLGrid | `opencode providers login -p plgrid` | `opencode auth login plgrid` |
+| Docs | [opencode.ai/docs](https://opencode.ai/docs/) | [opencode.ai/v2/docs](https://opencode.ai/v2/docs/) |
+
+**This setup works with both**, and you install it the same way. On 2.x, three things
+differ:
+
+- **2.x needs its own login.** If you already used 1.x, 2.x copies your key the first
+  time it runs. On a fresh install, run `opencode auth login plgrid`; until then the
+  PLGrid models do not appear.
+- **No LSP.** 2.x does not run language servers, so the *LSP* section below applies to
+  1.x only.
+- **Per-agent temperature settings are ignored** for now.
+
+If you edit `opencode.json`, keep its current format. 2.x reads it fine, but 1.x will
+not start with a config written in the newer 2.x format. How the plugin supports both
+versions is described in [research/plugin.md](research/plugin.md).
 
 ## Install
 
@@ -58,19 +85,21 @@ instead:
 cp opencode.json ~/.config/opencode/opencode.json
 ```
 
-Then authenticate once:
+Then authenticate once. The command depends on your OpenCode version:
 
 ```bash
-opencode providers login -p plgrid
+opencode providers login -p plgrid   # 1.x
+opencode auth login plgrid           # 2.x
 ```
 
-Paste your grant's API key. It is stored in
-`~/.local/share/opencode/auth.json` — **never** in any file in this repo.
+Paste your grant's API key. It is stored in `~/.local/share/opencode/auth.json` (1.x)
+or `~/.local/share/opencode/opencode.db` (2.x) — **never** in any file in this repo.
 
 Verify that the provider is registered — this should list 20 models:
 
 ```bash
-opencode models plgrid
+opencode models plgrid               # 1.x
+opencode models | grep '^plgrid/'    # 2.x — if it prints nothing, run it again
 ```
 
 Then start the TUI. Use `/models` to switch model and **Tab** to switch agent:
@@ -128,7 +157,7 @@ and Polish-language work.
 | `architect` | primary | DeepSeek-V4.1-Flash | Plans and delegates; **cannot edit files** |
 | `chat` | primary | any | No tools — for the non-function-calling models |
 | `researcher` | subagent | DeepSeek-V4.1-Flash | Traces code paths, read-only |
-| `reviewer` | subagent | Qwen3.6-27B, t=0.1 | Finds defects, read-only |
+| `reviewer` | subagent | Qwen3.6-27B, t=0.1 on 1.x | Finds defects, read-only |
 | `fastfix` | subagent | DeepSeek-V4.1-Flash | Small, well-specified mechanical edits |
 
 Invoke subagents with `@researcher`, `@reviewer`, `@fastfix`. Cycle primary agents
@@ -150,6 +179,8 @@ request. OpenCode already injects the agent and command descriptions from
 `git commit` asks.
 
 ## LSP
+
+**OpenCode 1.x only** — 2.x does not run language servers.
 
 `"lsp": true` is set, and it is worth having: after **every edit** OpenCode feeds
 the language server's diagnostics straight back to the agent, which then fixes its
@@ -237,7 +268,7 @@ What you get in return: your data stays on Polish academic infrastructure, PLGri
 administrators cannot read request or response content, and nothing goes to a
 foreign vendor.
 
-## Four things worth knowing (all verified in OpenCode source)
+## Four things worth knowing (all verified in OpenCode 1.x source)
 
 These bite open-weight models harder than frontier ones, and none are obvious from
 the docs. [research/pitfalls.md](research/pitfalls.md) has the full list with
@@ -264,7 +295,7 @@ where it starts.
 
 **4. `compaction.prune` does nothing for small-context models.** It needs ~60k of
 accumulated tool output before it fires (`PRUNE_MINIMUM` 20k, `PRUNE_PROTECT` 40k).
-Useful for the 200k+ models here, irrelevant at 32k.
+Useful for the 200k+ models here, irrelevant at 32k. 2.x ignores the setting.
 
 ## Why the agents are split the way they are
 
@@ -283,8 +314,8 @@ about constraints and independence rather than price:
 - `fastfix` gets a narrow prompt and a 15-step cap; the constraint is the point. It
   runs on DeepSeek-V4.1-Flash, the same model as the `architect`, because that model
   had a perfect record and finished tasks fastest.
-- The `reviewer` is deliberately a different model family — Qwen3.6-27B at
-  temperature 0.1 — so a review is not the author checking its own work.
+- The `reviewer` is deliberately a different model family — Qwen3.6-27B, at
+  temperature 0.1 on 1.x — so a review is not the author checking its own work.
 
 Note the built-in `plan` agent cannot do this: it has `task: { general: "deny" }`
 hardcoded, so it can never hand work to an implementer. That is why `architect`

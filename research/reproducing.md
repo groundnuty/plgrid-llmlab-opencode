@@ -6,7 +6,7 @@ Nothing here needs to be taken on trust. Every figure in
 Set your key once:
 
 ```bash
-export KEY=$(cat ~/.config/opencode/plgrid.key)     # or paste it inline
+export KEY=plg-...     # your grant's API key, from llmlab.plgrid.pl -> Grants
 ```
 
 ---
@@ -67,8 +67,8 @@ Loop the whole catalog and print a table (handles both error phrasings):
 curl -sH "Authorization: Bearer $KEY" \
   https://llmlab.plgrid.pl/api/v1/models-plgrid-format |
 python3 -c '
-import sys, json, re, urllib.request, urllib.error
-K = open("/Users/you/.config/opencode/plgrid.key").read().strip()
+import os, sys, json, re, urllib.request, urllib.error
+K = os.environ["KEY"]
 URL = "https://llmlab.plgrid.pl/api/v1/chat/completions"
 for m in json.load(sys.stdin):
     body = json.dumps({"model": m["model_name"], "max_tokens": 2000000000,
@@ -197,8 +197,8 @@ pointing it at a field that never appears.
 
 ```bash
 python3 - <<'PY'
-import base64, json, urllib.request
-K = open('/Users/you/.config/opencode/plgrid.key').read().strip()
+import base64, json, os, urllib.request
+K = os.environ["KEY"]
 img = base64.b64encode(open("some.png", "rb").read()).decode()
 body = {"model": "Qwen/Qwen3-VL-8B-Instruct", "max_tokens": 60, "messages": [
     {"role": "user", "content": [
@@ -218,7 +218,7 @@ scorers; the important part of the method is that scoring happens on **hidden ca
 the model never saw**, not on the test suite it was asked to make pass.
 
 ```bash
-REPEATS=3 research/benchmarks/bench-all.sh     # report and TSV in research/benchmarks/results/
+REPEATS=3 research/benchmarks/bench-all.sh     # OpenCode 1.x only; report and TSV in research/benchmarks/results/
 ```
 
 The warnings learned the hard way — isolate every run, keep the scorer out of reach,
