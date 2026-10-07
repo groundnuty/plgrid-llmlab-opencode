@@ -57,9 +57,7 @@ differ:
 - **2.x needs its own login.** If you already used 1.x, 2.x copies your key the first
   time it runs. On a fresh install, run `opencode auth login plgrid`; until then the
   PLGrid models do not appear.
-- **No LSP.** 2.x does not run language servers, so the *LSP* section below applies to
-  1.x only. Upstream has not said whether it will return
-  ([anomalyco/opencode#50916](https://github.com/anomalyco/opencode/issues/50916)).
+- **No LSP.** 2.x does not run language servers; see *LSP* below.
 - **Per-agent temperature settings are ignored** for now.
 
 `opencode.json` is written in the 1.x format, and 2.x converts it at startup. If you
@@ -98,21 +96,31 @@ instead:
 cp opencode.json ~/.config/opencode/opencode.json
 ```
 
-Then authenticate once. The command depends on your OpenCode version:
+Then authenticate once. On 1.x:
 
 ```bash
-opencode providers login -p plgrid   # 1.x
-opencode auth login plgrid           # 2.x
+opencode providers login -p plgrid
+```
+
+On 2.x:
+
+```bash
+opencode auth login plgrid
 ```
 
 Paste your grant's API key. It is stored in `~/.local/share/opencode/auth.json` (1.x)
 or `~/.local/share/opencode/opencode.db` (2.x) — **never** in any file in this repo.
 
-Verify that the provider is registered — this should list 20 models:
+Verify that the provider is registered — this should list 20 models. On 1.x:
 
 ```bash
-opencode models plgrid               # 1.x
-opencode models | grep '^plgrid/'    # 2.x — if it prints nothing, run it again
+opencode models plgrid
+```
+
+On 2.x (if it prints nothing, run it again):
+
+```bash
+opencode models | grep '^plgrid/'
 ```
 
 Then start the TUI. Use `/models` to switch model and **Tab** to switch agent:
@@ -193,7 +201,14 @@ request. OpenCode already injects the agent and command descriptions from
 
 ## LSP
 
-**OpenCode 1.x only** — 2.x does not run language servers.
+> [!WARNING]
+> **OpenCode 1.x only.** 2.x accepts `lsp` but runs no language servers and returns no
+> diagnostics ([migration guide](https://opencode.ai/v2/docs/migrate-v1/)). Upstream
+> has not said whether this changes: see
+> [anomalyco/opencode#50916](https://github.com/anomalyco/opencode/issues/50916), and
+> [#51416](https://github.com/anomalyco/opencode/issues/51416) for LSP access from
+> plugins. On 2.x, `AGENTS.md` tells agents to run the project's type checker or
+> linter instead.
 
 `"lsp": true` is set, and it is worth having: after **every edit** OpenCode feeds
 the language server's diagnostics straight back to the agent, which then fixes its
