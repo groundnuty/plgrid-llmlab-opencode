@@ -4,10 +4,11 @@ A working, sane OpenCode setup for the PLGrid Forge models on ACK Cyfronet
 supercomputers. Drop it in, log in once, and you have an agentic coding assistant
 running on Polish academic infrastructure.
 
-OpenCode ships in two forms: a terminal app (the TUI, started with `opencode`, plus
-`opencode run` for scripts) and graphical apps (the desktop app and the web
-interface). **This setup covers the terminal TUI only.** Everything here was built
-and tested in the terminal; the graphical apps were not tested.
+> [!IMPORTANT]
+> OpenCode ships in two forms: a terminal app (the TUI, started with `opencode`, plus
+> `opencode run` for scripts) and graphical apps (the desktop app and the web
+> interface). **This setup covers the terminal TUI only.** Everything here was built
+> and tested in the terminal; the graphical apps were not tested.
 
 Model capabilities, context limits and the benchmark figures below were **measured
 against the live gateway**, not copied from model cards.
@@ -38,6 +39,11 @@ against the live gateway**, not copied from model cards.
 OpenCode is currently available in two versions, 1.x and 2.x. Which one you get
 depends on how you install it; `opencode --version` tells you which one you have.
 
+> [!NOTE]
+> 2.x has been released since 2026-09-11 (2.0.0). 1.x has not been retired: as of
+> 2026-10-07 it is still released (1.18.35, published 2026-10-06), and no end-of-support
+> date has been announced.
+
 | | OpenCode 1.x | OpenCode 2.x |
 |---|---|---|
 | Install with | `curl -fsSL https://opencode.ai/install \| bash`<br>or `npm install -g opencode-ai` | `brew install opencode`<br>or `curl -fsSL https://opencode.ai/v2/install \| bash` |
@@ -52,12 +58,14 @@ differ:
   time it runs. On a fresh install, run `opencode auth login plgrid`; until then the
   PLGrid models do not appear.
 - **No LSP.** 2.x does not run language servers, so the *LSP* section below applies to
-  1.x only.
+  1.x only. Upstream has not said whether it will return
+  ([anomalyco/opencode#50916](https://github.com/anomalyco/opencode/issues/50916)).
 - **Per-agent temperature settings are ignored** for now.
 
-If you edit `opencode.json`, keep its current format. 2.x reads it fine, but 1.x will
-not start with a config written in the newer 2.x format. How the plugin supports both
-versions is described in [research/plugin.md](research/plugin.md).
+`opencode.json` is written in the 1.x format, and 2.x converts it at startup. If you
+edit it, keep that format: 1.x does not start with a config written in the 2.x format.
+How the plugin supports both versions is described in
+[research/plugin.md](research/plugin.md).
 
 ## Install
 
