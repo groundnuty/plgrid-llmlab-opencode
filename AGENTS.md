@@ -21,8 +21,9 @@
 
 - Run the code. Report the real output, including failures.
 - If you did not verify something, say so.
-- Diagnostics arrive after each edit inside a `<diagnostics>` tag. Treat them as
-  authoritative and fix them before continuing; do not re-run a linter to confirm.
+- If diagnostics arrive after an edit, inside a `<diagnostics>` tag, treat them as
+  authoritative and fix them before continuing. If none arrive, run the project's
+  type checker or linter yourself before calling the change done.
 - Delegate implementation with the task tool when a subagent fits the work better;
   state what you delegated and what came back.
 
