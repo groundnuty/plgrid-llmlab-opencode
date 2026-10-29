@@ -7,8 +7,9 @@ running on Polish academic infrastructure.
 > [!IMPORTANT]
 > OpenCode ships in two forms: a terminal app (the TUI, started with `opencode`, plus
 > `opencode run` for scripts) and graphical apps (the desktop app and the web
-> interface). **This setup covers the terminal TUI only.** Everything here was built
-> and tested in the terminal; the graphical apps were not tested.
+> interface). **This setup was built in the terminal TUI and also works in the
+> graphical apps**, after a few one-time settings in the app — see *Using the GUI*.
+> The 1.x desktop app has not been tested.
 
 Model capabilities, context limits and the benchmark figures below were **measured
 against the live gateway**, not copied from model cards.
@@ -17,9 +18,11 @@ against the live gateway**, not copied from model cards.
 
 | | |
 |---|---|
+| [GUI.md](GUI.md) | Step-by-step setup in the desktop app and the web interface |
 | [research/models.md](research/models.md) | Which models work, measured throughput and correctness, recommended assignments |
 | [research/pitfalls.md](research/pitfalls.md) | Traps that cost real debugging time — config, agents, runtime, model behaviour |
 | [research/plugin.md](research/plugin.md) | How the provider plugin works and how to distribute it |
+| [research/gui.md](research/gui.md) | The desktop app and the web interface: what was tested, what to set |
 | [research/reproducing.md](research/reproducing.md) | Commands to re-derive every measurement yourself |
 | [research/benchmarks/](research/benchmarks/) | Agentic fixtures with differential scorers |
 
@@ -29,8 +32,8 @@ against the live gateway**, not copied from model cards.
   [Forge guide](https://guide.plgrid.pl/en/integrated-platforms/plgrid_forge).
   Activate the service at <https://portal.plgrid.pl/services/111>, then generate a
   key at <https://llmlab.plgrid.pl> under **Grants → Generate API Key**.
-- [OpenCode](https://opencode.ai) 1.18.5 or newer, the terminal version. Both the 1.x
-  and the 2.x version work — see the next section.
+- [OpenCode](https://opencode.ai) 1.18.5 or newer. Both the 1.x and the 2.x version
+  work — see the next section. The install steps below use the terminal version.
 - Optional but recommended: `npm install -g pyright` for in-editor diagnostics
   (see *LSP* below).
 
@@ -153,6 +156,24 @@ agent:
 opencode
 ```
 
+## Using the GUI
+
+The desktop app and the web interface use the same server as the TUI, so they load
+the same plugin, config, agents and key. Copy the setup files as in step 2 above, per
+project or machine-wide, then follow **[GUI.md](GUI.md)**: step-by-step login and
+one-time settings in the app, for both install types. In short, on 2.x:
+
+- **Log in** with `/connect` in a session of your project, or, machine-wide, under
+  **Settings → Providers**. A key stored with the CLI login above works too.
+- **Pick DeepSeek V4.1 Flash** in the model dialog that follows a login from the app.
+  **Continue** alone selects GLM-5.2 FP8, which timed out on every request in the
+  benchmark.
+- **Turn on Settings → Preferences → Show agent**, or `architect` and `chat` cannot be
+  chosen.
+
+Tested with the 2.x desktop app and the 1.x and 2.x web UI; the 1.x desktop app is
+untested ([research/gui.md](research/gui.md)).
+
 ## What you get
 
 **20 models**, of which **14 support function calling**. On the benchmark fixtures,
@@ -191,9 +212,9 @@ The remaining 6 models **cannot use tools**. They remain useful for chat, transl
 and Polish-language work.
 
 > **Important:** to use a model without function calling, switch to the `chat`
-> agent first (**Tab** in the TUI, or `--agent chat`). The default `build` and
-> `plan` agents always send a tools array, and those models reject it with a hard
-> HTTP 400.
+> agent first (**Tab** in the TUI, the agent picker in the GUI, or `--agent chat`).
+> The default `build` and `plan` agents always send a tools array, and those models
+> reject it with a hard HTTP 400.
 
 **5 agents:**
 
@@ -206,10 +227,10 @@ and Polish-language work.
 | `fastfix` | subagent | DeepSeek-V4.1-Flash | Small, well-specified mechanical edits |
 
 Invoke subagents with `@researcher`, `@reviewer`, `@fastfix`. Cycle primary agents
-(`architect`, `chat`, and the built-in `build`/`plan`) with **Tab** in the TUI, or
-pass `--agent <name>` to `opencode run`. The benchmark's own `bench` agent is not
-here: it lives in `research/benchmarks/bench-opencode.json`, loaded only by the
-benchmark runner.
+(`architect`, `chat`, and the built-in `build`/`plan`) with **Tab** in the TUI, pick
+them in the GUI's agent picker, or pass `--agent <name>` to `opencode run`. The
+benchmark's own `bench` agent is not here: it lives in
+`research/benchmarks/bench-opencode.json`, loaded only by the benchmark runner.
 
 `AGENTS.md` is deliberately short and contains only directives — it is prepended to
 every agent's system prompt, so anything descriptive in it is paid for on every
